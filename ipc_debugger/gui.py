@@ -16,36 +16,280 @@ from .queue_debug import QueueDebugger
 from .shared_mem_debug import SharedMemoryDebugger
 from .deadlock_detector import DeadlockDetector
 
+class ThemeManager:
+    def __init__(self, root):
+        self.root = root
+        self.style = ttk.Style()
+        
+        # Base colors
+        self.colors = {
+            # Main color palette
+            "primary": "#1976d2",       # Primary blue
+            "primary_dark": "#004ba0",  # Darker shade
+            "primary_light": "#63a4ff", # Lighter shade
+            "secondary": "#424242",     # Dark gray
+            "accent": "#ff4081",        # Pink accent
+            "success": "#4caf50",       # Green
+            "warning": "#ff9800",       # Orange
+            "error": "#f44336",         # Red
+            "background": "#f5f5f5",    # Light gray background
+            "surface": "#ffffff",       # White surface
+            "text": "#212121",          # Near black text
+            "text_secondary": "#757575",# Secondary text
+            
+            # Component-specific colors
+            "pipe": "#1e88e5",          # Blue
+            "queue": "#43a047",         # Green
+            "shared_memory": "#8e24aa", # Purple
+            "deadlock": "#e53935",      # Red
+        }
+        
+        # Fonts
+        self.fonts = {
+            "heading": ("Segoe UI", 16, "bold"),
+            "subheading": ("Segoe UI", 12, "bold"),
+            "body": ("Segoe UI", 10),
+            "small": ("Segoe UI", 9),
+            "monospace": ("Consolas", 10)
+        }
+        
+        # Spacing constants
+        self.spacing = {
+            "xs": 2,
+            "small": 5,
+            "medium": 10,
+            "large": 15,
+            "xl": 20
+        }
+        
+        # Configure theme
+        self.apply_theme()
+    
+    def apply_theme(self):
+        """Apply the theme to all ttk widgets"""
+        # Reset to a known theme first to avoid platform-specific issues
+        self.style.theme_use('default')
+        
+        # Configure ttk style
+        self.style.configure("TFrame", background=self.colors["background"])
+        self.style.configure("TLabelframe", background=self.colors["background"])
+        self.style.configure("TLabelframe.Label", foreground=self.colors["primary"], 
+                            font=self.fonts["subheading"])
+        
+        # Configure Notebook (tabs)
+        self.style.configure("TNotebook", background=self.colors["background"])
+        # Explicitly set contrasting colors for tabs
+        self.style.configure("TNotebook.Tab", 
+                            background="#e1e1e1",         # Light gray for unselected
+                            foreground="#000000",         # Black text for unselected
+                            padding=(10, 5))
+        
+        # Explicit mapping for selected tabs with high contrast
+        self.style.map("TNotebook.Tab", 
+                     background=[("selected", "#1976d2")],  # Blue background when selected
+                     foreground=[("selected", "#ffffff")])  # White text when selected
+        
+        # Buttons - use hard-coded colors for maximum visibility
+        self.style.configure("TButton", 
+                           background="#1976d2",      # Blue background
+                           foreground="#ffffff",      # White text - high contrast
+                           font=self.fonts["body"],
+                           padding=(8, 4))
+        self.style.map("TButton",
+                     background=[("active", "#0d47a1"), ("disabled", "#9e9e9e")],  # Darker blue when active, gray when disabled
+                     foreground=[("active", "#ffffff"), ("disabled", "#ffffff")])  # White text in all states
+        
+        # Create button style - green with white text
+        self.style.configure("Create.TButton",
+                           background="#4caf50",      # Green background
+                           foreground="#ffffff")      # White text
+        self.style.map("Create.TButton",
+                     background=[("active", "#388e3c"), ("disabled", "#9e9e9e")],  # Darker green when active
+                     foreground=[("active", "#ffffff"), ("disabled", "#ffffff")])  # White text in all states
+        
+        # Delete button style - red with white text
+        self.style.configure("Delete.TButton",
+                           background="#f44336",      # Red background
+                           foreground="#ffffff")      # White text
+        self.style.map("Delete.TButton",
+                     background=[("active", "#d32f2f"), ("disabled", "#9e9e9e")],  # Darker red when active
+                     foreground=[("active", "#ffffff"), ("disabled", "#ffffff")])  # White text in all states
+        
+        # Simulate button style - orange with black text for contrast
+        self.style.configure("Simulate.TButton",
+                           background="#ff9800",      # Orange background
+                           foreground="#000000")      # Black text for contrast with orange
+        self.style.map("Simulate.TButton",
+                     background=[("active", "#f57c00"), ("disabled", "#9e9e9e")],  # Darker orange when active
+                     foreground=[("active", "#000000"), ("disabled", "#ffffff")])
+        
+        # Warning button style - yellow with black text
+        self.style.configure("Warning.TButton",
+                           background="#fdd835",      # Yellow background
+                           foreground="#000000")      # Black text for contrast with yellow
+        self.style.map("Warning.TButton",
+                     background=[("active", "#fbc02d"), ("disabled", "#9e9e9e")],  # Darker yellow when active
+                     foreground=[("active", "#000000"), ("disabled", "#ffffff")])
+        
+        # Info button style - light blue with black text
+        self.style.configure("Info.TButton",
+                           background="#03a9f4",      # Light blue background
+                           foreground="#000000")      # Black text for contrast
+        self.style.map("Info.TButton",
+                     background=[("active", "#0288d1"), ("disabled", "#9e9e9e")],  # Darker blue when active
+                     foreground=[("active", "#000000"), ("disabled", "#ffffff")])
+        
+        # Labels
+        self.style.configure("TLabel", 
+                           background=self.colors["background"],
+                           foreground=self.colors["text"],
+                           font=self.fonts["body"])
+        
+        # Title label style
+        self.style.configure("Title.TLabel",
+                           font=self.fonts["heading"],
+                           foreground=self.colors["primary"])
+        
+        # Subheading label style
+        self.style.configure("Subheading.TLabel",
+                           font=self.fonts["subheading"],
+                           foreground=self.colors["primary"])
+        
+        # Metrics label style
+        self.style.configure("Metric.TLabel",
+                           font=self.fonts["body"],
+                           foreground=self.colors["text_secondary"])
+        
+        # Value label style
+        self.style.configure("Value.TLabel",
+                           font=("Segoe UI", 10, "bold"),
+                           foreground=self.colors["primary"])
+        
+        # Warning label style
+        self.style.configure("Warning.TLabel",
+                           foreground=self.colors["warning"],
+                           font=("Segoe UI", 10, "bold"))
+        
+        # Error label style
+        self.style.configure("Error.TLabel",
+                           foreground=self.colors["error"],
+                           font=("Segoe UI", 10, "bold"))
+        
+        # Success label style
+        self.style.configure("Success.TLabel",
+                           foreground=self.colors["success"],
+                           font=("Segoe UI", 10, "bold"))
+        
+        # Entry
+        self.style.configure("TEntry", font=self.fonts["body"])
+        
+        # Combobox
+        self.style.configure("TCombobox", font=self.fonts["body"])
+            
+        # Separator
+        self.style.configure("TSeparator", background=self.colors["primary_light"])
+        
+        # Checkbutton
+        self.style.configure("TCheckbutton", 
+                           background=self.colors["background"],
+                           foreground=self.colors["text"],
+                           font=self.fonts["body"])
+                           
+        # Statusbar
+        self.style.configure("Statusbar.TLabel", 
+                           background=self.colors["primary_dark"],
+                           foreground="white",
+                           font=self.fonts["small"],
+                           padding=4)
+    
+    def configure_text_widget(self, text_widget):
+        """Apply styling to a Text or ScrolledText widget"""
+        text_widget.config(
+            font=self.fonts["monospace"],
+            background=self.colors["surface"],
+            foreground=self.colors["text"],
+            padx=8,
+            pady=8,
+            borderwidth=1,
+            relief="solid",
+            selectbackground=self.colors["primary_light"],
+            selectforeground=self.colors["text"],
+            insertbackground=self.colors["primary"]  # Cursor color
+        )
+    
+    def configure_canvas(self, canvas):
+        """Apply styling to a Canvas widget"""
+        canvas.config(
+            background="#f8f9fa",  # Light gray background
+            borderwidth=1,
+            relief="solid",
+            highlightthickness=0
+        )
+
 class IPCDebuggerGUI:
     def __init__(self, root):
-        """Initialize the IPC Debugger GUI"""
+        """Initialize the IPCDebuggerGUI"""
         self.root = root
         self.root.title("IPC Debugger")
-        self.root.geometry("1200x800")
-        self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
         
-        # Initialize debuggers
+        # Set initial window size
+        self.root.geometry("1024x768")
+        
+        # Create theme manager
+        self.theme_manager = ThemeManager(root)
+        
+        # Initialize variables
         self.pipe_debugger = PipeDebugger()
         self.queue_debugger = QueueDebugger()
         self.shared_mem_debugger = SharedMemoryDebugger()
         self.deadlock_detector = DeadlockDetector()
         
-        # Variables for process filtering and auto-analysis
+        # Simulation state
+        self.simulation_active = False
+        self.simulation_tasks = []
+        
+        # Deadlock simulation state
+        self.deadlock_simulation_active = False
+        self.deadlock_sim_button = None
+        
+        # Event log
+        self.log_entries = []
+        self.log_paused = False
+        self.log_filter = None
+        self.log_text = None
+        self._log_scroll_position = 1.0
+        
+        # Set maximum log entries to prevent memory issues
+        self.max_log_entries = 1000
+        
+        # UI update throttling
+        self.last_ui_update = 0
+        self.ui_update_interval = 0.2  # seconds
+        
+        # Highlighted elements for visualization
+        self.highlighted_elements = []
+        
+        # Process filtering
         self.filtered_processes = None
+        
+        # Auto-analyze deadlocks
         self.auto_analyze_active = False
+        
+        # Deadlock visualization variables
+        self.deadlock_canvas_scale = 1.0
+        self.deadlock_canvas_offset_x = 0
+        self.deadlock_canvas_offset_y = 0
+        self.deadlock_canvas_drag_start = None
+        self.selected_node = None
+        
+        # Canvas update flag
+        self.canvas_needs_update = True
         
         # Setup UI
         self._setup_ui()
         
-        # Start UI refresh
-        self.refresh_rate = 500  # milliseconds
-        self._refresh_ui()
-        
-        # Start resource cleanup (every 10 minutes)
-        self.root.after(600000, self._cleanup_resources)
-        
-        # Start simulation for demo purposes
-        self.simulate_ipc_activity()
+        # Setup closing handler
+        self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
     
     def _setup_ui(self):
         """Create the main UI elements"""
@@ -77,54 +321,124 @@ class IPCDebuggerGUI:
         notebook.add(shared_mem_tab, text="Shared Memory")
         notebook.add(deadlock_tab, text="Deadlock Detection")
         
+        # Add tab change event handler to provide warnings when switching tabs
+        def on_tab_change(event):
+            selected_tab = notebook.select()
+            tab_text = notebook.tab(selected_tab, "text")
+            
+            # When switching to Deadlock Detection tab, check if there are existing processes/resources
+            if tab_text == "Deadlock Detection":
+                process_count = len(self.deadlock_detector.processes)
+                resource_count = len(self.deadlock_detector.resources)
+                
+                # If there are existing processes/resources from an overview simulation, show a warning
+                if process_count > 0 or resource_count > 0:
+                    if process_count > 0 and resource_count > 0:
+                        message = f"There are {process_count} processes and {resource_count} resources "
+                        message += "that were created by previous simulations. "
+                        message += "You may want to clear them before starting a new simulation."
+                        self._update_status(message)
+                    
+                    # Update UI to make sure state is accurate
+                    self._update_deadlock_ui()
+        
+        # Bind the tab change event
+        notebook.bind("<<NotebookTabChanged>>", on_tab_change)
+        
         # Create status bar
-        self.status_bar = ttk.Label(self.root, text="Ready", relief=tk.SUNKEN, anchor=tk.W)
+        self.status_bar = ttk.Label(self.root, text="Ready", style="Statusbar.TLabel", anchor=tk.W)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
     
     def _setup_overview_tab(self, notebook):
         """Set up the overview tab"""
-        overview_frame = ttk.Frame(notebook)
-        notebook.add(overview_frame, text="Overview")
+        overview_tab = ttk.Frame(notebook)
+        notebook.add(overview_tab, text="Overview")
         
-        # Create top control area with demo button
-        control_frame = ttk.Frame(overview_frame)
+        # Create top control area with simulation controls
+        control_frame = ttk.Frame(overview_tab)
         control_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        demo_button = ttk.Button(control_frame, text="Run Demo Simulation", 
-                                command=self.simulate_ipc_activity)
-        demo_button.pack(side=tk.RIGHT, padx=5)
+        # Simulation speed on the left
+        speed_frame = ttk.Frame(control_frame)
+        speed_frame.pack(side=tk.LEFT, padx=5)
+        
+        ttk.Label(speed_frame, text="Speed:").pack(side=tk.LEFT, padx=2)
+        self.sim_speed_var = tk.IntVar(value=1)
+        speed_scale = ttk.Scale(speed_frame, from_=1, to=10, 
+                               orient=tk.HORIZONTAL, length=100,
+                               variable=self.sim_speed_var)
+        speed_scale.pack(side=tk.LEFT, padx=2)
+        
+        # Create a label to display the current speed
+        self.speed_label = ttk.Label(speed_frame, text="Normal")
+        self.speed_label.pack(side=tk.LEFT, padx=2)
+        
+        # Update the speed label when the slider changes
+        def update_speed_label(*args):
+            speed = self.sim_speed_var.get()
+            if speed <= 2:
+                self.speed_label.config(text="Slow")
+            elif speed <= 5:
+                self.speed_label.config(text="Normal")
+            elif speed <= 8:
+                self.speed_label.config(text="Fast")
+            else:
+                self.speed_label.config(text="Turbo")
+                
+        # Use the correct trace syntax for tkinter variables
+        self.sim_speed_var.trace_add("write", update_speed_label)
+        
+        # Simulation controls on the right
+        sim_control_frame = ttk.Frame(control_frame)
+        sim_control_frame.pack(side=tk.RIGHT, padx=5)
+        
+        # Duration selection
+        ttk.Label(sim_control_frame, text="Duration:").pack(side=tk.LEFT, padx=2)
+        self.sim_duration = tk.StringVar(value="Continuous")
+        duration_combo = ttk.Combobox(sim_control_frame, 
+                                    textvariable=self.sim_duration,
+                                    values=["Continuous", "15s", "30s", "60s"],
+                                    width=10, state="readonly")
+        duration_combo.pack(side=tk.LEFT, padx=2)
+        duration_combo.current(0)
+        
+        # Simulation control button
+        self.sim_button = ttk.Button(sim_control_frame, 
+                                  text="Run Demo Simulation", 
+                                  command=self._toggle_simulation)
+        self.sim_button.pack(side=tk.LEFT, padx=5)
         
         # Create summary frames
-        summary_frame = ttk.Frame(overview_frame)
+        summary_frame = ttk.Frame(overview_tab)
         summary_frame.pack(fill=tk.X, expand=False, padx=10, pady=5)
         
         # Create IPC type summary frames
         pipe_frame = ttk.LabelFrame(summary_frame, text="Pipes")
         pipe_frame.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-        self.pipe_count = ttk.Label(pipe_frame, text="Active: 0")
+        self.pipe_count = ttk.Label(pipe_frame, text="Active: 0", style="Value.TLabel")
         self.pipe_count.grid(row=0, column=0, padx=5, pady=2, sticky="w")
         
         queue_frame = ttk.LabelFrame(summary_frame, text="Message Queues")
         queue_frame.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
-        self.queue_count = ttk.Label(queue_frame, text="Active: 0")
+        self.queue_count = ttk.Label(queue_frame, text="Active: 0", style="Value.TLabel")
         self.queue_count.grid(row=0, column=0, padx=5, pady=2, sticky="w")
-        self.queue_messages = ttk.Label(queue_frame, text="Messages: 0")
+        self.queue_messages = ttk.Label(queue_frame, text="Messages: 0", style="Value.TLabel")
         self.queue_messages.grid(row=1, column=0, padx=5, pady=2, sticky="w")
         
         shm_frame = ttk.LabelFrame(summary_frame, text="Shared Memory")
         shm_frame.grid(row=0, column=2, sticky="ew", padx=5, pady=5)
-        self.shm_count = ttk.Label(shm_frame, text="Active: 0")
+        self.shm_count = ttk.Label(shm_frame, text="Active: 0", style="Value.TLabel")
         self.shm_count.grid(row=0, column=0, padx=5, pady=2, sticky="w")
-        self.shm_access = ttk.Label(shm_frame, text="Accesses: 0")
+        self.shm_access = ttk.Label(shm_frame, text="Accesses: 0", style="Value.TLabel")
         self.shm_access.grid(row=1, column=0, padx=5, pady=2, sticky="w")
         
         deadlock_frame = ttk.LabelFrame(summary_frame, text="Deadlock Detection")
         deadlock_frame.grid(row=0, column=3, sticky="ew", padx=5, pady=5)
-        self.process_count = ttk.Label(deadlock_frame, text="Processes: 0")
+        self.process_count = ttk.Label(deadlock_frame, text="Processes: 0", style="Value.TLabel")
         self.process_count.grid(row=0, column=0, padx=5, pady=2, sticky="w")
-        self.resource_count = ttk.Label(deadlock_frame, text="Resources: 0")
+        self.resource_count = ttk.Label(deadlock_frame, text="Resources: 0", style="Value.TLabel")
         self.resource_count.grid(row=1, column=0, padx=5, pady=2, sticky="w")
-        self.deadlock_count = ttk.Label(deadlock_frame, text="Deadlocks: 0")
+        self.deadlock_count = ttk.Label(deadlock_frame, text="Deadlocks: 0", style="Value.TLabel")
         self.deadlock_count.grid(row=2, column=0, padx=5, pady=2, sticky="w")
         
         # Configure grid columns to be evenly sized
@@ -132,39 +446,57 @@ class IPCDebuggerGUI:
             summary_frame.columnconfigure(i, weight=1)
         
         # Create visualization frame
-        viz_frame = ttk.LabelFrame(overview_frame, text="System Visualization")
+        viz_frame = ttk.LabelFrame(overview_tab, text="System Visualization")
         viz_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         
         self.overview_canvas = tk.Canvas(viz_frame, bg="white")
         self.overview_canvas.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.theme_manager.configure_canvas(self.overview_canvas)
         
         # Create metrics frame
-        metrics_frame = ttk.LabelFrame(overview_frame, text="System Metrics")
+        metrics_frame = ttk.LabelFrame(overview_tab, text="System Metrics")
         metrics_frame.pack(fill=tk.X, expand=False, padx=10, pady=5)
         
         # Setup metrics grid
         metrics_grid = ttk.Frame(metrics_frame)
         metrics_grid.pack(fill=tk.X, expand=True, padx=5, pady=5)
         
-        ttk.Label(metrics_grid, text="CPU Usage:").grid(row=0, column=0, sticky="w", padx=5, pady=2)
-        self.cpu_usage = ttk.Label(metrics_grid, text="0%")
+        ttk.Label(metrics_grid, text="CPU Usage:", style="Metric.TLabel").grid(row=0, column=0, sticky="w", padx=5, pady=2)
+        self.cpu_usage = ttk.Label(metrics_grid, text="0%", style="Value.TLabel")
         self.cpu_usage.grid(row=0, column=1, sticky="w", padx=5, pady=2)
         
-        ttk.Label(metrics_grid, text="Memory Usage:").grid(row=0, column=2, sticky="w", padx=5, pady=2)
-        self.memory_usage = ttk.Label(metrics_grid, text="0 MB")
+        ttk.Label(metrics_grid, text="Memory Usage:", style="Metric.TLabel").grid(row=0, column=2, sticky="w", padx=5, pady=2)
+        self.memory_usage = ttk.Label(metrics_grid, text="0 MB", style="Value.TLabel")
         self.memory_usage.grid(row=0, column=3, sticky="w", padx=5, pady=2)
         
-        ttk.Label(metrics_grid, text="IPC Throughput:").grid(row=1, column=0, sticky="w", padx=5, pady=2)
-        self.ipc_throughput = ttk.Label(metrics_grid, text="0 ops/sec")
+        ttk.Label(metrics_grid, text="IPC Throughput:", style="Metric.TLabel").grid(row=1, column=0, sticky="w", padx=5, pady=2)
+        self.ipc_throughput = ttk.Label(metrics_grid, text="0 ops/sec", style="Value.TLabel")
         self.ipc_throughput.grid(row=1, column=1, sticky="w", padx=5, pady=2)
         
-        ttk.Label(metrics_grid, text="Active Processes:").grid(row=1, column=2, sticky="w", padx=5, pady=2)
-        self.active_process_count = ttk.Label(metrics_grid, text="0")
+        ttk.Label(metrics_grid, text="Active Processes:", style="Metric.TLabel").grid(row=1, column=2, sticky="w", padx=5, pady=2)
+        self.active_process_count = ttk.Label(metrics_grid, text="0", style="Value.TLabel")
         self.active_process_count.grid(row=1, column=3, sticky="w", padx=5, pady=2)
         
         # Event log frame
-        log_frame = ttk.LabelFrame(overview_frame, text="Event Log")
+        log_frame = ttk.LabelFrame(overview_tab, text="Event Log")
         log_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        # Log controls frame
+        log_control_frame = ttk.Frame(log_frame)
+        log_control_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        # Log pause/play control
+        self.log_pause_button = ttk.Button(log_control_frame, text="Pause Log", 
+                                        command=self._toggle_log_pause)
+        self.log_pause_button.pack(side=tk.LEFT, padx=5)
+        
+        # Clear log button
+        ttk.Button(log_control_frame, text="Clear Log", 
+                  command=self._clear_log).pack(side=tk.LEFT, padx=5)
+        
+        # Export log button
+        ttk.Button(log_control_frame, text="Export Log", 
+                  command=self._export_log).pack(side=tk.LEFT, padx=5)
         
         # Log filter frame
         filter_frame = ttk.Frame(log_frame)
@@ -210,9 +542,27 @@ class IPCDebuggerGUI:
         self.log_text = tk.Text(log_text_frame, height=10, width=80)
         self.log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
+        # Track scroll position changes
+        self._log_scroll_position = 1.0  # Default to end
+        def on_log_scroll(*args):
+            self._log_scroll_position = self.log_text.yview()[0]
+        self.log_text.bind("<MouseWheel>", on_log_scroll)  # Windows/macOS
+        self.log_text.bind("<Button-4>", on_log_scroll)    # Linux scroll up
+        self.log_text.bind("<Button-5>", on_log_scroll)    # Linux scroll down
+        
+        # Add tracking for scrollbar drag and release
+        def on_scrollbar_drag(*args):
+            self._log_scroll_position = self.log_text.yview()[0]
+        
+        # Create scrollbar with drag tracking
         log_scrollbar = ttk.Scrollbar(log_text_frame, orient=tk.VERTICAL, command=self.log_text.yview)
         log_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        log_scrollbar.bind("<B1-Motion>", on_scrollbar_drag)
+        log_scrollbar.bind("<ButtonRelease-1>", on_scrollbar_drag)
         self.log_text.config(yscrollcommand=log_scrollbar.set)
+        
+        # Apply styling to log text
+        self.theme_manager.configure_text_widget(self.log_text)
         
         # Initialize log filter
         self.log_filter = None
@@ -223,7 +573,7 @@ class IPCDebuggerGUI:
         frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Title
-        ttk.Label(frame, text="Pipe IPC Debugger", font=("Arial", 16)).pack(pady=10)
+        ttk.Label(frame, text="Pipe IPC Debugger", style="Title.TLabel").pack(pady=10)
         
         # Control frame
         control_frame = ttk.Frame(frame)
@@ -233,8 +583,8 @@ class IPCDebuggerGUI:
         self.pipe_id_var = tk.StringVar()
         ttk.Entry(control_frame, textvariable=self.pipe_id_var, width=15).pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(control_frame, text="Create Pipe", command=self._create_pipe).pack(side=tk.LEFT, padx=5)
-        ttk.Button(control_frame, text="Delete Pipe", command=self._delete_pipe).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="Create Pipe", style="Create.TButton", command=self._create_pipe).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="Delete Pipe", style="Delete.TButton", command=self._delete_pipe).pack(side=tk.LEFT, padx=5)
         
         # Pipe operations frame
         ops_frame = ttk.LabelFrame(frame, text="Pipe Operations")
@@ -257,8 +607,8 @@ class IPCDebuggerGUI:
         ttk.Entry(op_controls, textvariable=self.pipe_reader_pid_var, width=8).pack(side=tk.LEFT, padx=5)
         
         ttk.Button(op_controls, text="Set PIDs", command=self._set_pipe_pids).pack(side=tk.LEFT, padx=5)
-        ttk.Button(op_controls, text="Simulate Transfer", command=self._simulate_pipe_transfer).pack(side=tk.LEFT, padx=5)
-        ttk.Button(op_controls, text="Simulate Bottleneck", command=self._simulate_pipe_bottleneck).pack(side=tk.LEFT, padx=5)
+        ttk.Button(op_controls, text="Simulate Transfer", style="Simulate.TButton", command=self._simulate_pipe_transfer).pack(side=tk.LEFT, padx=5)
+        ttk.Button(op_controls, text="Simulate Bottleneck", style="Simulate.TButton", command=self._simulate_pipe_bottleneck).pack(side=tk.LEFT, padx=5)
         
         # Status frame
         status_frame = ttk.LabelFrame(frame, text="Pipe Status")
@@ -266,6 +616,7 @@ class IPCDebuggerGUI:
         
         self.pipe_status_text = scrolledtext.ScrolledText(status_frame, height=15)
         self.pipe_status_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.theme_manager.configure_text_widget(self.pipe_status_text)
         self.pipe_status_text.config(state=tk.DISABLED)
         
     def _setup_queues_tab(self, tab):
@@ -274,7 +625,7 @@ class IPCDebuggerGUI:
         frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Title
-        ttk.Label(frame, text="Message Queue Debugger", font=("Arial", 16)).pack(pady=10)
+        ttk.Label(frame, text="Message Queue Debugger", style="Title.TLabel").pack(pady=10)
         
         # Control frame
         control_frame = ttk.Frame(frame)
@@ -288,8 +639,8 @@ class IPCDebuggerGUI:
         self.queue_capacity_var = tk.StringVar(value="10")
         ttk.Entry(control_frame, textvariable=self.queue_capacity_var, width=5).pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(control_frame, text="Create Queue", command=self._create_queue).pack(side=tk.LEFT, padx=5)
-        ttk.Button(control_frame, text="Delete Queue", command=self._delete_queue).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="Create Queue", style="Create.TButton", command=self._create_queue).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="Delete Queue", style="Delete.TButton", command=self._delete_queue).pack(side=tk.LEFT, padx=5)
         
         # Queue operations frame
         ops_frame = ttk.LabelFrame(frame, text="Queue Operations")
@@ -322,6 +673,7 @@ class IPCDebuggerGUI:
         
         self.queue_status_text = scrolledtext.ScrolledText(status_frame, height=15)
         self.queue_status_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.theme_manager.configure_text_widget(self.queue_status_text)
         self.queue_status_text.config(state=tk.DISABLED)
         
     def _setup_shared_mem_tab(self, tab):
@@ -330,7 +682,7 @@ class IPCDebuggerGUI:
         frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Title
-        ttk.Label(frame, text="Shared Memory Debugger", font=("Arial", 16)).pack(pady=10)
+        ttk.Label(frame, text="Shared Memory Debugger", style="Title.TLabel").pack(pady=10)
         
         # Control frame
         control_frame = ttk.Frame(frame)
@@ -344,10 +696,10 @@ class IPCDebuggerGUI:
         self.memory_size_var = tk.StringVar(value="1024")
         ttk.Entry(control_frame, textvariable=self.memory_size_var, width=10).pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(control_frame, text="Create Memory Segment", 
+        ttk.Button(control_frame, text="Create Memory Segment", style="Create.TButton", 
                   command=self._create_shared_memory).pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(control_frame, text="Delete Memory Segment", 
+        ttk.Button(control_frame, text="Delete Memory Segment", style="Delete.TButton",
                   command=self._delete_shared_memory).pack(side=tk.LEFT, padx=5)
         
         # Memory operations frame
@@ -376,8 +728,8 @@ class IPCDebuggerGUI:
         
         ttk.Button(op_controls, text="Read", command=self._read_shared_memory).pack(side=tk.LEFT, padx=5)
         ttk.Button(op_controls, text="Write", command=self._write_shared_memory).pack(side=tk.LEFT, padx=5)
-        ttk.Button(op_controls, text="Lock", command=self._lock_shared_memory).pack(side=tk.LEFT, padx=5)
-        ttk.Button(op_controls, text="Unlock", command=self._unlock_shared_memory).pack(side=tk.LEFT, padx=5)
+        ttk.Button(op_controls, text="Lock", style="Simulate.TButton", command=self._lock_shared_memory).pack(side=tk.LEFT, padx=5)
+        ttk.Button(op_controls, text="Unlock", style="Simulate.TButton", command=self._unlock_shared_memory).pack(side=tk.LEFT, padx=5)
         
         # Status frame
         status_frame = ttk.LabelFrame(frame, text="Shared Memory Status")
@@ -385,6 +737,7 @@ class IPCDebuggerGUI:
         
         self.shm_status_text = scrolledtext.ScrolledText(status_frame, height=15)
         self.shm_status_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.theme_manager.configure_text_widget(self.shm_status_text)
         self.shm_status_text.config(state=tk.DISABLED)
     
     def _setup_deadlock_tab(self, tab):
@@ -397,7 +750,7 @@ class IPCDebuggerGUI:
         control_frame.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
         
         # Process controls
-        ttk.Label(control_frame, text="Process Management:").pack(pady=(10, 0), padx=10, anchor=tk.W)
+        ttk.Label(control_frame, text="Process Management:", style="Subheading.TLabel").pack(pady=(10, 0), padx=10, anchor=tk.W)
         
         process_frame = ttk.Frame(control_frame)
         process_frame.pack(pady=5, padx=10, fill=tk.X)
@@ -406,26 +759,31 @@ class IPCDebuggerGUI:
         self.process_id_var = tk.StringVar(value="process_1")
         ttk.Entry(process_frame, textvariable=self.process_id_var).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         
-        ttk.Button(control_frame, text="Register Process", command=self._register_process).pack(pady=5, padx=10, fill=tk.X)
+        ttk.Button(control_frame, text="Register Process", style="Create.TButton", command=self._register_process).pack(pady=5, padx=10, fill=tk.X)
         
         # Process selection and unregistration
         process_select_frame = ttk.Frame(control_frame)
         process_select_frame.pack(pady=5, padx=10, fill=tk.X)
         
         ttk.Label(process_select_frame, text="Select Process:").pack(side=tk.LEFT)
-        self.selected_process_var = tk.StringVar(value="None")
+        self.selected_process_var = tk.StringVar(value="")
         self.process_dropdown = ttk.Combobox(process_select_frame, textvariable=self.selected_process_var, state="readonly")
         self.process_dropdown.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         
-        ttk.Button(control_frame, text="Unregister Process", command=self._unregister_process).pack(pady=5, padx=10, fill=tk.X)
+        ttk.Button(control_frame, text="Unregister Process", style="Delete.TButton", command=self._unregister_process).pack(pady=5, padx=10, fill=tk.X)
         
         # Process filter
         filter_frame = ttk.Frame(control_frame)
         filter_frame.pack(pady=5, padx=10, fill=tk.X)
         
-        ttk.Label(filter_frame, text="Filter:").pack(side=tk.LEFT)
+        ttk.Label(filter_frame, text="Filter by ID:").pack(side=tk.LEFT)
         self.process_filter_var = tk.StringVar()
         ttk.Entry(filter_frame, textvariable=self.process_filter_var).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        
+        # Add tooltip/help text for the filter
+        filter_help = ttk.Label(control_frame, text="(Helps visualize large systems by showing only processes with IDs containing the filter text)", 
+                               style="Metric.TLabel", wraplength=200, justify=tk.LEFT)
+        filter_help.pack(pady=0, padx=10, fill=tk.X)
         
         filter_buttons_frame = ttk.Frame(control_frame)
         filter_buttons_frame.pack(pady=5, padx=10, fill=tk.X)
@@ -434,7 +792,7 @@ class IPCDebuggerGUI:
         ttk.Button(filter_buttons_frame, text="Clear Filter", command=self._clear_process_filter).pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
         
         # Resource controls
-        ttk.Label(control_frame, text="Resource Management:").pack(pady=(10, 0), padx=10, anchor=tk.W)
+        ttk.Label(control_frame, text="Resource Management:", style="Subheading.TLabel").pack(pady=(10, 0), padx=10, anchor=tk.W)
         
         resource_frame = ttk.Frame(control_frame)
         resource_frame.pack(pady=5, padx=10, fill=tk.X)
@@ -443,18 +801,29 @@ class IPCDebuggerGUI:
         self.resource_id_var = tk.StringVar(value="resource_1")
         ttk.Entry(resource_frame, textvariable=self.resource_id_var).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         
-        ttk.Button(control_frame, text="Register Resource", command=self._register_resource).pack(pady=5, padx=10, fill=tk.X)
+        # Add instances field for multi-instance resources
+        instances_frame = ttk.Frame(control_frame)
+        instances_frame.pack(pady=5, padx=10, fill=tk.X)
+        
+        ttk.Label(instances_frame, text="Instances:").pack(side=tk.LEFT)
+        self.resource_instances_var = tk.StringVar(value="1")
+        ttk.Entry(instances_frame, textvariable=self.resource_instances_var, width=5).pack(side=tk.LEFT, padx=5)
+        ttk.Label(instances_frame, text="(Number of units available)").pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(control_frame, text="Register Resource", style="Create.TButton", command=self._register_resource).pack(pady=5, padx=10, fill=tk.X)
         
         # Request/release controls
         ttk.Separator(control_frame, orient=tk.HORIZONTAL).pack(pady=10, fill=tk.X)
         
+        ttk.Label(control_frame, text="Request/Release:", style="Subheading.TLabel").pack(pady=(10, 0), padx=10, anchor=tk.W)
         ttk.Label(control_frame, text="Process:").pack(pady=(10, 0), padx=10, anchor=tk.W)
-        self.process_dropdown = ttk.Combobox(control_frame, textvariable=self.selected_process_var)
-        self.process_dropdown.pack(pady=5, padx=10, fill=tk.X)
+        # Use the existing dropdown's variable but create a new combobox for this section
+        self.request_process_dropdown = ttk.Combobox(control_frame, textvariable=self.selected_process_var, state="readonly")
+        self.request_process_dropdown.pack(pady=5, padx=10, fill=tk.X)
         
         ttk.Label(control_frame, text="Resource:").pack(pady=(5, 0), padx=10, anchor=tk.W)
-        self.selected_resource_var = tk.StringVar(value="None")
-        self.resource_dropdown = ttk.Combobox(control_frame, textvariable=self.selected_resource_var)
+        self.selected_resource_var = tk.StringVar(value="")
+        self.resource_dropdown = ttk.Combobox(control_frame, textvariable=self.selected_resource_var, state="readonly")
         self.resource_dropdown.pack(pady=5, padx=10, fill=tk.X)
         
         ttk.Button(control_frame, text="Request Resource", command=self._request_resource).pack(pady=5, padx=10, fill=tk.X)
@@ -462,7 +831,7 @@ class IPCDebuggerGUI:
         
         # Analysis controls
         ttk.Separator(control_frame, orient=tk.HORIZONTAL).pack(pady=10, fill=tk.X)
-        ttk.Label(control_frame, text="Analysis:").pack(pady=(10, 0), padx=10, anchor=tk.W)
+        ttk.Label(control_frame, text="Analysis:", style="Subheading.TLabel").pack(pady=(10, 0), padx=10, anchor=tk.W)
         
         analysis_frame = ttk.Frame(control_frame)
         analysis_frame.pack(pady=5, padx=10, fill=tk.X)
@@ -474,7 +843,12 @@ class IPCDebuggerGUI:
         
         # Simulation controls
         ttk.Separator(control_frame, orient=tk.HORIZONTAL).pack(pady=10, fill=tk.X)
-        ttk.Label(control_frame, text="Simulation:").pack(pady=(10, 0), padx=10, anchor=tk.W)
+        ttk.Label(control_frame, text="Simulation:", style="Subheading.TLabel").pack(pady=(10, 0), padx=10, anchor=tk.W)
+        
+        # Add help text for simulation vs manual registration
+        sim_help = ttk.Label(control_frame, text="(Quick simulation clears existing processes/resources and creates a new deadlock scenario)", 
+                            style="Metric.TLabel", wraplength=200, justify=tk.LEFT)
+        sim_help.pack(pady=0, padx=10, fill=tk.X)
         
         sim_frame = ttk.Frame(control_frame)
         sim_frame.pack(pady=5, padx=10, fill=tk.X)
@@ -487,7 +861,17 @@ class IPCDebuggerGUI:
         self.sim_resources_var = tk.StringVar(value="3")
         ttk.Entry(sim_frame, textvariable=self.sim_resources_var, width=3).pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(control_frame, text="Simulate Deadlock", command=self._simulate_deadlock).pack(pady=5, padx=10, fill=tk.X)
+        # Store a reference to the simulation button
+        self.deadlock_sim_button = ttk.Button(
+            control_frame, 
+            text="Simulate Deadlock", 
+            style="Simulate.TButton", 
+            command=self._simulate_deadlock
+        )
+        self.deadlock_sim_button.pack(pady=5, padx=10, fill=tk.X)
+        
+        # Add a Clear All button to reset the system
+        ttk.Button(control_frame, text="Clear All Processes & Resources", style="Delete.TButton", command=self._clear_deadlock_data).pack(pady=5, padx=10, fill=tk.X)
         
         # Deadlock visualization area
         vis_frame = ttk.LabelFrame(frame, text="Deadlock Visualization")
@@ -499,6 +883,7 @@ class IPCDebuggerGUI:
         
         self.deadlock_canvas = tk.Canvas(canvas_frame, bg="white")
         self.deadlock_canvas.pack(fill=tk.BOTH, expand=True)
+        self.theme_manager.configure_canvas(self.deadlock_canvas)
         
         # Add scrollbars for large graphs
         h_scrollbar = ttk.Scrollbar(canvas_frame, orient=tk.HORIZONTAL, command=self.deadlock_canvas.xview)
@@ -526,7 +911,6 @@ class IPCDebuggerGUI:
         self.deadlock_canvas.bind("<Button-5>", self._deadlock_canvas_zoom)    # Linux scroll down
         
         # Initialize canvas state
-        self.deadlock_canvas_scale = 1.0
         self.deadlock_canvas_drag_start = None
         self.deadlock_canvas_clicked_item = None
         
@@ -541,6 +925,7 @@ class IPCDebuggerGUI:
         # Detailed status text
         self.deadlock_status_text = scrolledtext.ScrolledText(status_frame, height=5)
         self.deadlock_status_text.pack(fill=tk.BOTH, expand=True)
+        self.theme_manager.configure_text_widget(self.deadlock_status_text)
         self.deadlock_status_text.config(state=tk.DISABLED)
         
         # Suggestions area
@@ -549,6 +934,7 @@ class IPCDebuggerGUI:
         
         self.deadlock_suggestion_text = scrolledtext.ScrolledText(suggestion_frame, height=3)
         self.deadlock_suggestion_text.pack(fill=tk.BOTH, expand=True)
+        self.theme_manager.configure_text_widget(self.deadlock_suggestion_text)
         self.deadlock_suggestion_text.config(state=tk.DISABLED)
         
         # Initialize process filter
@@ -873,28 +1259,57 @@ class IPCDebuggerGUI:
     
     # Deadlock actions
     def _register_process(self):
-        """Register a process for deadlock detection"""
-        process_id = self.process_id_var.get()
-        if process_id:
-            self.deadlock_detector.register_process(process_id)
-            self._update_deadlock_ui()
-            self.status_bar.config(text=f"Process {process_id} registered")
+        """Register a new process"""
+        # Get next available process ID
+        process_id = f"P{len(self.deadlock_detector.processes) + 1}"
+        
+        # Register with deadlock detector
+        self.deadlock_detector.register_process(process_id)
+        
+        # Update the UI
+        self._refresh_ui()
+        self._log_event(f"Registered process {process_id}")
     
     def _unregister_process(self):
-        """Unregister a process from deadlock detection"""
-        process_id = self.process_id_var.get()
+        """Unregister a process from deadlock tracking"""
+        process_id = self.selected_process_var.get()
         if process_id:
-            self.deadlock_detector.unregister_process(process_id)
-            self._update_deadlock_ui()
-            self.status_bar.config(text=f"Process {process_id} unregistered")
+            # Unregister the process
+            result = self.deadlock_detector.unregister_process(process_id)
+            if result:
+                self.status_bar.config(text=f"Process {process_id} unregistered")
+                # Clear the selection
+                self.selected_process_var.set("")
+                # Update UI immediately
+                self._update_deadlock_ui()
+            else:
+                self.status_bar.config(text=f"Failed to unregister process {process_id}")
+        else:
+            self.status_bar.config(text="No process selected")
     
     def _register_resource(self):
         """Register a resource for deadlock detection"""
-        resource_id = self.resource_id_var.get()
-        if resource_id:
-            self.deadlock_detector.register_resource(resource_id)
+        # Get next available resource ID number
+        next_id = len(self.deadlock_detector.resources) + 1
+        resource_id = f"R{next_id}"
+        
+        try:
+            # Get instances value (default to 1 if invalid)
+            instances = 1
+            instances_str = self.resource_instances_var.get()
+            if instances_str and instances_str.isdigit():
+                instances = max(1, int(instances_str))  # Ensure at least 1 instance
+            
+            # Register with instances
+            self.deadlock_detector.register_resource(resource_id, instances=instances)
+            
+            # Log using the stable resource ID
+            self._log_event(f"Registered resource {resource_id}")
             self._update_deadlock_ui()
-            self.status_bar.config(text=f"Resource {resource_id} registered")
+            self.status_bar.config(text=f"Resource {resource_id} registered with {instances} instances")
+        except ValueError as e:
+            self.status_bar.config(text=f"Error: {str(e)}")
+            messagebox.showerror("Input Error", f"Invalid number of instances: {self.resource_instances_var.get()}")
     
     def _unregister_resource(self):
         """Unregister a resource from deadlock detection"""
@@ -911,10 +1326,13 @@ class IPCDebuggerGUI:
         
         if process_id and resource_id:
             self.deadlock_detector.set_resource_owner(resource_id, process_id)
-            self.deadlock_detector.add_log_entry(
-                "deadlock_detector", 
-                f"Process {process_id} now owns resource {resource_id}"
-            )
+            
+            # Get canonical IDs for logging
+            canonical_process = self._get_canonical_process_id(process_id)
+            canonical_resource = self._get_canonical_resource_id(resource_id)
+            
+            self._log_event(f"Process {canonical_process} acquired resource {canonical_resource}")
+            
             self._update_deadlock_ui()
             self.status_bar.config(text=f"Process {process_id} set as owner of resource {resource_id}")
     
@@ -925,10 +1343,13 @@ class IPCDebuggerGUI:
         
         if process_id and resource_id:
             self.deadlock_detector.add_waiting_process(resource_id, process_id)
-            self.deadlock_detector.add_log_entry(
-                "deadlock_detector", 
-                f"Process {process_id} now waiting for resource {resource_id}"
-            )
+            
+            # Get canonical IDs for logging
+            canonical_process = self._get_canonical_process_id(process_id)
+            canonical_resource = self._get_canonical_resource_id(resource_id)
+            
+            self._log_event(f"Process {canonical_process} waiting for resource {canonical_resource}")
+            
             self._update_deadlock_ui()
             self.status_bar.config(text=f"Process {process_id} set as waiting for resource {resource_id}")
     
@@ -964,6 +1385,13 @@ class IPCDebuggerGUI:
         """Clear all deadlock detection data"""
         self.deadlock_detector.clear_all()
         self.deadlock_detector.add_log_entry("deadlock_detector", "All data cleared")
+        
+        # Reset deadlock simulation state
+        if self.deadlock_simulation_active:
+            self.deadlock_simulation_active = False
+            if self.deadlock_sim_button:
+                self.deadlock_sim_button.configure(text="Simulate Deadlock")
+                
         self._update_deadlock_ui()
         self.status_bar.config(text="Deadlock detection data cleared")
     
@@ -975,6 +1403,12 @@ class IPCDebuggerGUI:
     
     def _update_deadlock_ui(self):
         """Update the deadlock detection UI elements"""
+        # Check if UI elements have been initialized
+        if not all([self.deadlock_status, self.deadlock_status_text, self.deadlock_canvas, 
+                  self.process_dropdown, self.resource_dropdown]):
+            # UI not yet fully initialized, skip update
+            return
+            
         # Get current resources and processes
         resources = self.deadlock_detector.get_resource_status()
         processes = self.deadlock_detector.get_process_status()
@@ -987,7 +1421,9 @@ class IPCDebuggerGUI:
             processes = filtered_processes
         
         # Update dropdowns
-        self.process_dropdown['values'] = list(processes.keys())
+        process_list = list(processes.keys())
+        self.process_dropdown['values'] = process_list
+        self.request_process_dropdown['values'] = process_list
         self.resource_dropdown['values'] = list(resources.keys())
         
         # Check for deadlocks
@@ -998,9 +1434,9 @@ class IPCDebuggerGUI:
             self._analyze_deadlocks()
         
         if deadlocks:
-            self.deadlock_status.config(text=f"Deadlock detected: {len(deadlocks)} cycle(s)")
+            self.deadlock_status.config(text=f"Deadlock detected: {len(deadlocks)} cycle(s)", style="Error.TLabel")
         else:
-            self.deadlock_status.config(text="No deadlocks detected")
+            self.deadlock_status.config(text="No deadlocks detected", style="Success.TLabel")
         
         # Update status text
         self.deadlock_status_text.config(state=tk.NORMAL)
@@ -1008,13 +1444,38 @@ class IPCDebuggerGUI:
         
         status_text = "RESOURCES:\n"
         for r_id, r_info in resources.items():
-            status_text += f"{r_id}: {r_info['state']} (Owner: {r_info['owner'] or 'None'}, " \
-                          f"Waiters: {len(r_info['waiters'])})\n"
+            status_text += f"{r_id}: {r_info['state']} "
+            status_text += f"(Total: {r_info.get('total_instances', 1)}, "
+            status_text += f"Available: {r_info.get('available_instances', 0)}, "
+            
+            allocations = r_info.get('allocations', {})
+            if allocations:
+                alloc_str = ", ".join([f"{p}:{amt}" for p, amt in allocations.items()])
+                status_text += f"Allocated: {{{alloc_str}}}, "
+            
+            waiters_count = len(r_info.get('waiters', []))
+            status_text += f"Waiters: {waiters_count})\n"
         
         status_text += "\nPROCESSES:\n"
         for p_id, p_info in processes.items():
-            status_text += f"{p_id}: Owns {len(p_info['owns'])} resources, " \
-                          f"Waiting for: {p_info['waiting_for'] or 'None'}\n"
+            # Format the owned resources with allocation counts
+            owns_formatted = []
+            for r_id in p_info['owns']:
+                if r_id in resources and p_id in resources[r_id].get('allocations', {}):
+                    allocation = resources[r_id]['allocations'][p_id]
+                    owns_formatted.append(f"{r_id}:{allocation}")
+                else:
+                    owns_formatted.append(r_id)
+            
+            status_text += f"{p_id}: Owns {{{', '.join(owns_formatted) if owns_formatted else 'None'}}}, "
+            
+            # Show waiting information with requested amount
+            waiting_for = p_info['waiting_for']
+            if waiting_for and waiting_for in resources and p_id in resources[waiting_for].get('waiting_for', {}):
+                requested = resources[waiting_for]['waiting_for'][p_id]
+                status_text += f"Waiting for: {waiting_for} ({requested} units)\n"
+            else:
+                status_text += f"Waiting for: {waiting_for or 'None'}\n"
         
         if deadlocks:
             status_text += "\nDEADLOCKS DETECTED:\n"
@@ -1024,7 +1485,15 @@ class IPCDebuggerGUI:
         self.deadlock_status_text.insert(tk.END, status_text)
         self.deadlock_status_text.config(state=tk.DISABLED)
         
-        # Update visualization
+        # Only update the visualization if needed
+        if self.canvas_needs_update:
+            self._update_deadlock_visualization(resources, processes, deadlocks)
+        else:
+            # Reset the flag for next update
+            self.canvas_needs_update = True
+            
+    def _update_deadlock_visualization(self, resources, processes, deadlocks):
+        """Update the visualization for deadlock detection"""
         self.deadlock_canvas.delete("all")
         
         width = self.deadlock_canvas.winfo_width()
@@ -1106,6 +1575,7 @@ class IPCDebuggerGUI:
                 fill_color = "orange"
                 
             # Highlight resources involved in deadlocks
+            outline_width = 2
             for cycle in deadlocks:
                 for p_id in cycle:
                     if p_id in processes and processes[p_id]['waiting_for'] == r_id:
@@ -1113,11 +1583,8 @@ class IPCDebuggerGUI:
                         outline_width = 3
                         break
                 else:
-                    outline_width = 2
                     continue
                 break
-            else:
-                outline_width = 2
             
             # Draw rectangle for resource
             rect_id = self.deadlock_canvas.create_rectangle(
@@ -1133,10 +1600,10 @@ class IPCDebuggerGUI:
             
             # Add tooltip and click behavior
             self.deadlock_canvas.tag_bind(f"resource:{r_id}", "<Enter>", 
-                                         lambda e, rid=r_id: self._show_resource_tooltip(e, rid))
+                                        lambda e, rid=r_id: self._show_resource_tooltip(e, rid))
             self.deadlock_canvas.tag_bind(f"resource:{r_id}", "<Leave>", self._hide_tooltip)
             self.deadlock_canvas.tag_bind(f"resource:{r_id}", "<Button-1>", 
-                                         lambda e, rid=r_id: self._select_resource(rid))
+                                        lambda e, rid=r_id: self._select_resource(rid))
         
         # Draw process nodes (circles)
         for p_id, (x, y) in process_nodes.items():
@@ -1167,10 +1634,10 @@ class IPCDebuggerGUI:
             
             # Add tooltip and click behavior
             self.deadlock_canvas.tag_bind(f"process:{p_id}", "<Enter>", 
-                                         lambda e, pid=p_id: self._show_process_tooltip(e, pid))
+                                        lambda e, pid=p_id: self._show_process_tooltip(e, pid))
             self.deadlock_canvas.tag_bind(f"process:{p_id}", "<Leave>", self._hide_tooltip)
             self.deadlock_canvas.tag_bind(f"process:{p_id}", "<Button-1>", 
-                                         lambda e, pid=p_id: self._select_process(pid))
+                                        lambda e, pid=p_id: self._select_process(pid))
         
         # Draw edges for ownership (process to resource)
         for p_id, p_info in processes.items():
@@ -1260,6 +1727,10 @@ class IPCDebuggerGUI:
     
     def _analyze_deadlocks(self):
         """Perform detailed analysis on detected deadlocks"""
+        # Check if UI elements have been initialized
+        if not self.deadlock_suggestion_text:
+            return
+            
         deadlocks = self.deadlock_detector.detect_deadlocks()
         resources = self.deadlock_detector.get_resource_status()
         processes = self.deadlock_detector.get_process_status()
@@ -1268,7 +1739,7 @@ class IPCDebuggerGUI:
         self.deadlock_suggestion_text.delete(1.0, tk.END)
         
         if not deadlocks:
-            self.deadlock_suggestion_text.insert(tk.END, "No deadlocks detected. System is operating normally.")
+            self.deadlock_suggestion_text.insert(tk.END, "No deadlocks detected. System is operating normally.\n\nThis means all resource requests can be satisfied without creating circular waits.")
         else:
             # Create detailed analysis and suggestions
             suggestions = []
@@ -1278,9 +1749,26 @@ class IPCDebuggerGUI:
                 
                 # Find the resources involved
                 deadlocked_resources = []
+                resource_details = []
+                
                 for p_id in cycle:
                     if p_id in processes and processes[p_id]['waiting_for']:
-                        deadlocked_resources.append(processes[p_id]['waiting_for'])
+                        wait_res = processes[p_id]['waiting_for']
+                        deadlocked_resources.append(wait_res)
+                        
+                        # Get detailed allocation info
+                        if wait_res in resources:
+                            r_info = resources[wait_res]
+                            avail = r_info.get('available_instances', 0)
+                            total = r_info.get('total_instances', 1)
+                            allocations = r_info.get('allocations', {})
+                            alloc_info = ", ".join([f"{pid}:{amt}" for pid, amt in allocations.items()])
+                            resource_details.append(f"  - {wait_res}: {avail}/{total} available, allocations: {{{alloc_info}}}")
+                
+                if resource_details:
+                    suggestions.append("Resource allocation state:\n")
+                    suggestions.extend([rd + "\n" for rd in resource_details])
+                    suggestions.append("\n")
                 
                 # Generate suggestions
                 if deadlocked_resources:
@@ -1291,9 +1779,10 @@ class IPCDebuggerGUI:
                         if p_id in processes:
                             wait_res = processes[p_id]['waiting_for']
                             if wait_res:
-                                owner = resources.get(wait_res, {}).get('owner')
-                                if owner:
-                                    suggestions.append(f"1. Release '{wait_res}' held by '{owner}'\n")
+                                allocations = resources.get(wait_res, {}).get('allocations', {})
+                                if allocations:
+                                    owner_info = ", ".join([f"{pid} (holds {amt})" for pid, amt in allocations.items()])
+                                    suggestions.append(f"1. Release '{wait_res}' held by {owner_info}\n")
                                     break
                     
                     # Suggestion 2: Terminate a process
@@ -1301,10 +1790,14 @@ class IPCDebuggerGUI:
                     
                     # Suggestion 3: Priority-based resource allocation
                     suggestions.append(f"3. Implement priority-based allocation for resources: {', '.join(deadlocked_resources)}\n")
+                    
+                    # Banker's Algorithm explanation
+                    suggestions.append("\nThis deadlock could have been prevented using the Banker's Algorithm, which ensures that resources are allocated only when it's safe to do so (i.e., when there's a sequence that allows all processes to complete).\n")
             
             self.deadlock_suggestion_text.insert(tk.END, "".join(suggestions))
         
         self.deadlock_suggestion_text.config(state=tk.DISABLED)
+        self.status_bar.config(text="Deadlock analysis complete - see suggestions for resolution options")
     
     def _toggle_auto_analysis(self):
         """Toggle automatic deadlock analysis"""
@@ -1321,6 +1814,13 @@ class IPCDebuggerGUI:
         self.queue_debugger.stop_monitoring()
         self.shared_mem_debugger.stop_monitoring()
         self.deadlock_detector.stop_monitoring()
+        
+        # Stop simulations if active
+        if self.simulation_active:
+            self._stop_simulation()
+            
+        if self.deadlock_simulation_active:
+            self.deadlock_simulation_active = False
         
         # Close the application
         self.root.destroy()
@@ -1346,18 +1846,78 @@ class IPCDebuggerGUI:
 
     def _zoom_in_deadlock(self):
         """Zoom in on the deadlock visualization"""
-        self.deadlock_canvas_scale *= 1.1
-        self.deadlock_canvas.scale("all", 0, 0, self.deadlock_canvas_scale, self.deadlock_canvas_scale)
+        if not self.deadlock_canvas:
+            return
+            
+        self.deadlock_canvas_scale *= 1.2
+        # Get the canvas dimensions
+        canvas_width = self.deadlock_canvas.winfo_width()
+        canvas_height = self.deadlock_canvas.winfo_height()
+        
+        # Calculate the center point of the canvas
+        center_x = canvas_width / 2
+        center_y = canvas_height / 2
+        
+        # Scale from the center
+        self.deadlock_canvas.scale("all", center_x, center_y, 1.2, 1.2)
+        
+        # Update the status bar
+        self.status_bar.config(text=f"Zoom level: {self.deadlock_canvas_scale:.1f}x")
+        
+        # Save the canvas state to prevent auto-refresh from resetting it
+        self.canvas_needs_update = False
     
     def _zoom_out_deadlock(self):
         """Zoom out on the deadlock visualization"""
-        self.deadlock_canvas_scale /= 1.1
-        self.deadlock_canvas.scale("all", 0, 0, self.deadlock_canvas_scale, self.deadlock_canvas_scale)
+        if not self.deadlock_canvas:
+            return
+            
+        self.deadlock_canvas_scale /= 1.2
+        # Get the canvas dimensions
+        canvas_width = self.deadlock_canvas.winfo_width()
+        canvas_height = self.deadlock_canvas.winfo_height()
+        
+        # Calculate the center point of the canvas
+        center_x = canvas_width / 2
+        center_y = canvas_height / 2
+        
+        # Scale from the center
+        self.deadlock_canvas.scale("all", center_x, center_y, 0.8, 0.8)
+        
+        # Update the status bar
+        self.status_bar.config(text=f"Zoom level: {self.deadlock_canvas_scale:.1f}x")
+        
+        # Save the canvas state to prevent auto-refresh from resetting it
+        self.canvas_needs_update = False
     
     def _reset_deadlock_view(self):
         """Reset the deadlock visualization"""
+        if not self.deadlock_canvas:
+            return
+            
+        # Store the current scale to calculate the reset factor
+        reset_factor = 1.0 / self.deadlock_canvas_scale
+        
+        # Get the canvas dimensions
+        canvas_width = self.deadlock_canvas.winfo_width()
+        canvas_height = self.deadlock_canvas.winfo_height()
+        
+        # Calculate the center point of the canvas
+        center_x = canvas_width / 2
+        center_y = canvas_height / 2
+        
+        # Reset scale from the center
+        self.deadlock_canvas.scale("all", center_x, center_y, reset_factor, reset_factor)
+        
+        # Reset the scale factor
         self.deadlock_canvas_scale = 1.0
-        self.deadlock_canvas.scale("all", 0, 0, self.deadlock_canvas_scale, self.deadlock_canvas_scale)
+        
+        # Force a full redraw
+        self.canvas_needs_update = True
+        self._update_deadlock_ui()
+        
+        # Update the status bar
+        self.status_bar.config(text="Zoom reset to 1.0x")
     
     def _deadlock_canvas_click(self, event):
         """Handle click on the deadlock visualization"""
@@ -1374,13 +1934,34 @@ class IPCDebuggerGUI:
     
     def _deadlock_canvas_zoom(self, event):
         """Handle zoom on the deadlock visualization"""
-        if self.deadlock_canvas_clicked_item:
-            dx = event.x - self.deadlock_canvas.canvasx(event.x)
-            dy = event.y - self.deadlock_canvas.canvasy(event.y)
-            self.deadlock_canvas_scale *= 1.1 if event.delta > 0 else 0.9
-            self.deadlock_canvas.scale("all", self.deadlock_canvas.canvasx(event.x), self.deadlock_canvas.canvasy(event.y), self.deadlock_canvas_scale, self.deadlock_canvas_scale)
-            self.deadlock_canvas.move("all", -dx, -dy)
-            self.deadlock_canvas_clicked_item = None 
+        # Get zoom direction from event (platform-specific)
+        if event.delta:
+            # Windows/macOS
+            zoom_in = event.delta > 0
+        elif event.num == 4:
+            # Linux scroll up
+            zoom_in = True
+        elif event.num == 5:
+            # Linux scroll down
+            zoom_in = False
+        else:
+            return
+        
+        # Set zoom factor
+        factor = 1.1 if zoom_in else 0.9
+        
+        # Get canvas coordinates for the mouse position
+        x = self.deadlock_canvas.canvasx(event.x)
+        y = self.deadlock_canvas.canvasy(event.y)
+        
+        # Update scale factor
+        self.deadlock_canvas_scale *= factor
+        
+        # Apply zoom centered on mouse position
+        self.deadlock_canvas.scale("all", x, y, factor, factor)
+        
+        # Update the status bar
+        self.status_bar.config(text=f"Zoom level: {self.deadlock_canvas_scale:.1f}x")
     
     def _show_process_tooltip(self, event, process_id):
         """Show tooltip for a process node"""
@@ -1403,10 +1984,24 @@ class IPCDebuggerGUI:
             return
         
         resource = resources[resource_id]
-        owner = resource['owner'] if resource['owner'] else "None"
-        waiters = ", ".join(resource['waiters']) if resource['waiters'] else "None"
+        total_instances = resource.get('total_instances', 1)
+        available = resource.get('available_instances', 0)
         
-        tooltip_text = f"Resource: {resource_id}\nState: {resource['state']}\nOwner: {owner}\nWaiters: {waiters}"
+        # Get allocation information
+        allocations = resource.get('allocations', {})
+        if allocations:
+            alloc_str = ", ".join([f"{pid}:{amt}" for pid, amt in allocations.items()])
+        else:
+            alloc_str = "None"
+            
+        waiters = ", ".join(resource.get('waiters', [])) if resource.get('waiters', []) else "None"
+        
+        tooltip_text = f"Resource: {resource_id}\n"
+        tooltip_text += f"State: {resource['state']}\n"
+        tooltip_text += f"Total instances: {total_instances}\n"
+        tooltip_text += f"Available: {available}\n"
+        tooltip_text += f"Allocations: {alloc_str}\n"
+        tooltip_text += f"Waiters: {waiters}"
         
         self._show_tooltip(event, tooltip_text)
     
@@ -1515,129 +2110,268 @@ class IPCDebuggerGUI:
                     self.deadlock_canvas.itemconfig(f"process:{p_id}", width=4)
                     self.deadlock_canvas.itemconfig(f"waits_edge:{p_id}:{node_id}", width=4)
     
-    def simulate_ipc_activity(self):
-        """Simulate various IPC activities for demonstration purposes"""
-        # Create or update pipes
-        for i in range(3):
-            pipe_id = f"demo_pipe_{i}"
-            status = random.choice(["idle", "transferring", "bottleneck"])
-            progress = random.randint(0, 100) if status == "transferring" else 0
+    def _toggle_simulation(self):
+        """Toggle the simulation on/off"""
+        if not self.simulation_active:
+            # Start simulation
+            self.simulation_active = True
+            self.sim_button.configure(text="Stop Simulation")
             
-            self.pipe_debugger.register_pipe(pipe_id)
-            self.pipe_debugger.update_pipe_status(
-                pipe_id, 
-                {
-                    "status": status,
-                    "writer_pid": f"process_{random.randint(1000, 9999)}",
-                    "reader_pid": f"process_{random.randint(1000, 9999)}",
-                    "bytes_transferred": random.randint(1000, 10000),
-                    "progress": progress
-                }
-            )
+            # Clear any previous simulation tasks
+            for task_id in self.simulation_tasks:
+                self.root.after_cancel(task_id)
+            self.simulation_tasks = []
             
-            # Add to log
-            if status != "idle":
-                self.pipe_debugger.add_log_entry(
-                    pipe_id, 
-                    f"Data {'transfer in progress' if status == 'transferring' else 'bottleneck detected'}"
-                )
-        
-        # Create or update queues
-        for i in range(2):
-            queue_id = f"demo_queue_{i}"
-            capacity = 10
-            message_count = random.randint(0, capacity)
-            
-            self.queue_debugger.register_queue(queue_id, capacity)
-            self.queue_debugger.update_queue_status(
-                queue_id,
-                {
-                    "status": "active" if message_count > 0 else "idle",
-                    "message_count": message_count,
-                    "capacity": capacity,
-                    "producer_pid": f"process_{random.randint(1000, 9999)}",
-                    "consumer_pid": f"process_{random.randint(1000, 9999)}"
-                }
-            )
-            
-            # Add to log
-            if random.random() < 0.3:  # 30% chance to add a log entry
-                action = random.choice(["enqueued", "dequeued"])
-                self.queue_debugger.add_log_entry(
-                    queue_id, 
-                    f"Message {action} (queue size: {message_count}/{capacity})"
-                )
-        
-        # Create or update shared memory
-        for i in range(4):
-            shm_id = f"demo_shm_{i}"
-            
-            self.shared_mem_debugger.register_memory_segment(shm_id, random.randint(1024, 10240))
-            self.shared_mem_debugger.update_memory_status(
-                shm_id,
-                {
-                    "status": random.choice(["active", "idle"]),
-                    "size": random.randint(1024, 10240),
-                    "access_count": random.randint(0, 100),
-                    "last_writer": f"process_{random.randint(1000, 9999)}",
-                    "locked_regions": [{"offset": 0, "size": 100}] if random.random() < 0.2 else []
-                }
-            )
-            
-            # Add to log
-            if random.random() < 0.3:  # 30% chance to add a log entry
-                action = random.choice(["write", "read", "lock", "unlock"])
-                self.shared_mem_debugger.add_log_entry(
-                    shm_id, 
-                    f"Memory {action} operation at offset {random.randint(0, 1000)}"
-                )
-        
-        # Create processes and resources for deadlock simulation
-        for i in range(5):
-            process_id = f"process_{random.randint(1000, 9999)}"
-            self.deadlock_detector.register_process(process_id)
-        
-        # Register 8 resources
-        for i in range(8):
-            resource_id = f"resource_{i}"
-            self.deadlock_detector.register_resource(resource_id)
-        
-        # Create a deadlock situation occasionally
-        if random.random() < 0.3:  # 30% chance of deadlock
-            # Create a simple deadlock cycle between 3 processes and 3 resources
-            processes = list(self.deadlock_detector.get_process_status().keys())[:3]
-            resources = list(self.deadlock_detector.get_resource_status().keys())[:3]
-            
-            if len(processes) >= 3 and len(resources) >= 3:
-                # Process 0 owns Resource 0, waits for Resource 1
-                # Process 1 owns Resource 1, waits for Resource 2
-                # Process 2 owns Resource 2, waits for Resource 0
-                for i in range(3):
-                    self.deadlock_detector.set_resource_owner(resources[i], processes[i])
-                    self.deadlock_detector.add_waiting_process(resources[(i+1)%3], processes[i])
+            # Start simulation with selected duration
+            duration_text = self.sim_duration.get()
+            if duration_text == "Continuous":
+                # Run indefinitely until stopped
+                self.simulate_ipc_activity()
+            else:
+                # Run for specified duration
+                seconds = int(duration_text.rstrip("s"))
+                self.simulate_ipc_activity()
+                # Schedule automatic stop after duration
+                stop_task = self.root.after(seconds * 1000, self._stop_simulation)
+                self.simulation_tasks.append(stop_task)
                 
-                # Add to log
-                self.deadlock_detector.add_log_entry(
-                    "deadlock_detector", 
-                    f"Deadlock cycle detected involving processes {', '.join(processes)}"
-                )
+        else:
+            # Stop simulation
+            self._stop_simulation()
+    
+    def _stop_simulation(self):
+        """Stop the ongoing simulation"""
+        self.simulation_active = False
+        self.sim_button.configure(text="Run Demo Simulation")
         
-        # Create random resource ownership and waiting
-        processes = list(self.deadlock_detector.get_process_status().keys())
-        resources = list(self.deadlock_detector.get_resource_status().keys())
+        # Cancel any pending simulation tasks
+        for task_id in self.simulation_tasks:
+            self.root.after_cancel(task_id)
+        self.simulation_tasks = []
         
-        for resource in resources[3:]:  # Use resources not involved in deadlock
-            if random.random() < 0.7:  # 70% chance of assigning owner
-                owner = random.choice(processes)
-                self.deadlock_detector.set_resource_owner(resource, owner)
+        # Check if processes/resources were created during simulation
+        process_count = len(self.deadlock_detector.processes)
+        resource_count = len(self.deadlock_detector.resources)
         
-        for process in processes:
-            if random.random() < 0.3:  # 30% chance of waiting
-                resource = random.choice(resources)
-                self.deadlock_detector.add_waiting_process(resource, process)
+        if process_count > 0 or resource_count > 0:
+            # Ask user if they want to clean up
+            if messagebox.askyesno("Clean Up Simulation", 
+                                  f"Clear {process_count} processes and {resource_count} resources?"):
+                self._clear_deadlock_data()
+                self._update_status("Simulation stopped and data cleared")
+            else:
+                self._update_status("Simulation stopped (data preserved)")
+        else:
+            # Update status to show simulation stopped
+            self._update_status("Simulation stopped")
+    
+    def simulate_ipc_activity(self):
+        """Simulate IPC activity for demo purposes"""
+        if not self.simulation_active:
+            return
+            
+        # Get simulation speed factor (1-10)
+        speed_factor = self.sim_speed_var.get()
+            
+        # Calculate how many events to create based on speed
+        # At higher speeds, we'll generate more events but update UI less frequently
+        events_per_cycle = min(speed_factor, 5)  # Cap at 5 to prevent overload
         
-        # Schedule next simulation
-        self.root.after(5000, self.simulate_ipc_activity)  # Run every 5 seconds
+        # Determine probability of each event type based on speed
+        # At higher speeds, we'll generate fewer unique events to reduce load
+        create_probability = max(0.1, 0.3 - (speed_factor * 0.02))  # Decreases with speed
+        delete_probability = min(0.4, 0.1 + (speed_factor * 0.03))  # Increases with speed
+        
+        # Batch changes to reduce UI updates
+        actions_taken = 0
+        
+        # Run multiple events based on speed factor
+        for _ in range(events_per_cycle):
+            # Pipes simulation
+            if random.random() < 0.3:
+                pipe_id = f"pipe_{random.randint(1, 5)}"
+                writer_pid = random.randint(1000, 9999)
+                reader_pid = random.randint(1000, 9999)
+                
+                if random.random() < 0.6:  # Create or use pipe
+                    if random.random() < create_probability:
+                        # Check if pipe exists in active_pipes
+                        if pipe_id not in self.pipe_debugger.active_pipes:
+                            self.pipe_debugger.register_pipe(pipe_id)
+                            self._log_event(f"Created pipe {pipe_id}")
+                            actions_taken += 1
+                    
+                    if pipe_id in self.pipe_debugger.active_pipes:
+                        # Update pipe status with PIDs
+                        self.pipe_debugger.update_pipe_status(pipe_id, {
+                            'writer_pid': f"process_{writer_pid}",
+                            'reader_pid': f"process_{reader_pid}"
+                        })
+                        
+                        # Simulate data transfer
+                        bytes_sent = random.randint(10, 1000)
+                        self.pipe_debugger.update_pipe_status(pipe_id, {
+                            'status': 'transferring',
+                            'bytes_transferred': bytes_sent,
+                            'progress': random.randint(0, 100)
+                        })
+                        self._log_event(f"Transferred {bytes_sent} bytes through {pipe_id} from PID {writer_pid} to {reader_pid}")
+                        actions_taken += 1
+                else:  # Delete pipe
+                    if pipe_id in self.pipe_debugger.active_pipes and random.random() < delete_probability:
+                        self.pipe_debugger.unregister_pipe(pipe_id)
+                        self._log_event(f"Deleted pipe {pipe_id}")
+                        actions_taken += 1
+            
+            # Message queues simulation
+            if random.random() < 0.3:
+                queue_id = f"queue_{random.randint(1, 3)}"
+                sender_pid = random.randint(1000, 9999)
+                receiver_pid = random.randint(1000, 9999)
+                
+                if random.random() < 0.7:  # Create or use queue
+                    if random.random() < 0.2:
+                        # Check if queue exists in active_queues
+                        if queue_id not in self.queue_debugger.active_queues:
+                            self.queue_debugger.register_queue(queue_id, random.randint(5, 20))
+                            self._log_event(f"Created message queue {queue_id}")
+                    
+                    if queue_id in self.queue_debugger.active_queues:
+                        # Update queue status with PIDs
+                        self.queue_debugger.update_queue_status(queue_id, {
+                            'producer_pid': f"process_{sender_pid}",
+                            'consumer_pid': f"process_{receiver_pid}"
+                        })
+                        
+                        if random.random() < 0.7:  # Enqueue
+                            queue_info = self.queue_debugger.active_queues[queue_id]
+                            if queue_info['message_count'] < queue_info['capacity']:
+                                msg_size = random.randint(10, 100)
+                                self.queue_debugger.enqueue_message(queue_id, f"Message-{msg_size}")
+                                self._log_event(f"Enqueued message to {queue_id} from PID {sender_pid}")
+                            else:  # Dequeue
+                                queue_info = self.queue_debugger.active_queues[queue_id]
+                                if queue_info['message_count'] > 0:
+                                    self.queue_debugger.dequeue_message(queue_id)
+                                    self._log_event(f"Dequeued message from {queue_id} by PID {receiver_pid}")
+                else:  # Delete queue
+                    if queue_id in self.queue_debugger.active_queues and random.random() < 0.1:
+                        self.queue_debugger.unregister_queue(queue_id)
+                        self._log_event(f"Deleted message queue {queue_id}")
+            
+            # Shared memory simulation
+            if random.random() < 0.3:
+                segment_id = f"shm_{random.randint(1, 3)}"
+                process_id = f"process_{random.randint(1000, 9999)}"
+                
+                if random.random() < 0.8:  # Create or use shared memory
+                    if random.random() < 0.2:
+                        # Check if segment exists
+                        if segment_id not in self.shared_mem_debugger.shared_memories:
+                            size = random.randint(1, 10) * 1024  # 1-10 KB
+                            self.shared_mem_debugger.register_memory_segment(segment_id, size)
+                            self._log_event(f"Created shared memory segment {segment_id} with size {size} bytes")
+                    
+                    if segment_id in self.shared_mem_debugger.shared_memories:
+                        # Access shared memory
+                        memory_info = self.shared_mem_debugger.shared_memories[segment_id]
+                        offset = random.randint(0, memory_info['size'] - 100)  # Ensure we don't go out of bounds
+                        
+                        if random.random() < 0.5:  # Read
+                            size_to_read = min(10, memory_info['size'] - offset)
+                            self.shared_mem_debugger.read_from_memory(segment_id, offset, size_to_read, process_id)
+                            self._log_event(f"Process {process_id} read from shared memory {segment_id} at offset {offset}")
+                            
+                            # Update status for visualization
+                            self.shared_mem_debugger.update_memory_status(segment_id, {
+                                'access_count': memory_info['access_count'] + 1,
+                                'last_activity': time.time()
+                            })
+                        else:  # Write
+                            data = f"Data-{random.randint(100, 999)}"
+                            self.shared_mem_debugger.write_to_memory(segment_id, offset, data, process_id)
+                            self._log_event(f"Process {process_id} wrote to shared memory {segment_id} at offset {offset}")
+                            
+                            # Update status for visualization
+                            self.shared_mem_debugger.update_memory_status(segment_id, {
+                                'access_count': memory_info['access_count'] + 1,
+                                'last_activity': time.time(),
+                                'last_writer': process_id
+                            })
+                        
+                        # Lock/unlock
+                        if random.random() < 0.2:
+                            region_start = offset
+                            region_end = offset + 50
+                            
+                            if random.random() < 0.5:  # Lock
+                                # Check if not locked
+                                region_locked = False
+                                for (start, end), lock_info in memory_info['locks'].items():
+                                    if region_start <= end and region_end >= start:
+                                        region_locked = True
+                                        break
+                                        
+                                if not region_locked:
+                                    self.shared_mem_debugger.lock_region(segment_id, region_start, region_end, process_id)
+                                    self._log_event(f"Process {process_id} locked shared memory {segment_id} region {region_start}-{region_end}")
+                            else:  # Unlock
+                                for (start, end), lock_info in list(memory_info['locks'].items()):
+                                    if lock_info['owner'] == process_id:
+                                        self.shared_mem_debugger.unlock_region(segment_id, start, end, process_id)
+                                        self._log_event(f"Process {process_id} unlocked shared memory {segment_id} region {start}-{end}")
+                                        break
+                else:  # Delete shared memory
+                    if segment_id in self.shared_mem_debugger.shared_memories and random.random() < 0.1:
+                        self.shared_mem_debugger.unregister_shared_memory(segment_id)
+                        self._log_event(f"Deleted shared memory segment {segment_id}")
+            
+            # Deadlock simulation
+            if random.random() < 0.2:
+                process_name = f"P{random.randint(1, 5)}"
+                resource_name = f"R{random.randint(1, 5)}"
+                
+                if random.random() < 0.3:
+                    # Register process or resource
+                    if random.random() < 0.5:
+                        if process_name not in self.deadlock_detector.processes:
+                            self.deadlock_detector.register_process(process_name)
+                            self._log_event(f"Registered process {process_name}")
+                    else:
+                        if resource_name not in self.deadlock_detector.resources:
+                            self.deadlock_detector.register_resource(resource_name)
+                            self._log_event(f"Registered resource {resource_name}")
+                else:
+                    # Resource allocation
+                    if process_name in self.deadlock_detector.processes and resource_name in self.deadlock_detector.resources:
+                        if random.random() < 0.7:  # Request
+                            result = self.deadlock_detector.request_resource(process_name, resource_name)
+                            if result:
+                                self._log_event(f"Process {process_name} acquired resource {resource_name}")
+                            else:
+                                self._log_event(f"Process {process_name} waiting for resource {resource_name}")
+                        else:  # Release
+                            # Check if the process owns the resource
+                            if resource_name in self.deadlock_detector.processes[process_name]['owns']:
+                                self.deadlock_detector.release_resource(process_name, resource_name)
+                                self._log_event(f"Process {process_name} released resource {resource_name}")
+            
+            # Update system metrics
+            if actions_taken > 0 and actions_taken % 5 == 0:  # Only update metrics periodically
+                self._update_system_metrics()
+        
+        # Schedule next update based on speed (faster speed = shorter delay)
+        # Calculate delay in ms - higher speed means shorter delay
+        # At higher speeds, we do more work per cycle but wait longer between cycles
+        if speed_factor <= 5:
+            delay = max(100, int(500 / speed_factor))  # Normal speed range
+        else:
+            # For very high speeds, increase the number of events per cycle
+            # but keep a minimum delay to prevent UI freezing
+            delay = max(100, int(200))  # Min 100ms, max 200ms delay
+            
+        task_id = self.root.after(delay, self.simulate_ipc_activity)
+        self.simulation_tasks.append(task_id)
     
     # ------ UI Update Methods ------
     
@@ -1740,164 +2474,165 @@ class IPCDebuggerGUI:
         self.shm_status_text.config(state=tk.DISABLED)
     
     def _update_log_text(self):
-        """Update the log text area with new events"""
-        # Get log entries from all debuggers
-        pipe_logs = []
-        queue_logs = []
-        shm_logs = []
-        deadlock_logs = []
-        
-        # Collect logs based on visibility options
-        if self.show_pipe_logs.get():
-            pipe_logs = self.pipe_debugger.get_log_entries()
-        
-        if self.show_queue_logs.get():
-            queue_logs = self.queue_debugger.get_log_entries()
-        
-        if self.show_shm_logs.get():
-            shm_logs = self.shared_mem_debugger.get_log_entries()
-        
-        if self.show_deadlock_logs.get():
-            deadlock_logs = self.deadlock_detector.get_log_entries()
-        
-        # Combine and sort logs by timestamp
-        all_logs = pipe_logs + queue_logs + shm_logs + deadlock_logs
-        all_logs.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
-        
-        # Apply filter if one is set
-        filtered_logs = all_logs
-        if self.log_filter:
-            filtered_logs = [log for log in all_logs 
-                            if self.log_filter.lower() in log.get('message', '').lower() or 
-                               self.log_filter.lower() in log.get('component_id', '').lower()]
-        
-        # Limit to latest 1000 entries to avoid performance issues
-        filtered_logs = filtered_logs[:1000]
-        
-        # Update log text
+        """Update log text based on current filters and state"""
+        if self.log_paused:
+            return
+            
+        # Remember current scroll position before updating
+        if hasattr(self, '_log_scroll_position'):
+            current_position = self._log_scroll_position
+        else:
+            current_position = 1.0  # Default to end
+            
+        # Apply filters based on checkboxes
         self.log_text.config(state=tk.NORMAL)
         self.log_text.delete(1.0, tk.END)
         
-        for log in filtered_logs:
-            # Format timestamp
-            timestamp = datetime.datetime.fromtimestamp(log.get('timestamp', 0))
-            time_str = timestamp.strftime('%H:%M:%S')
-            
-            # Color code based on component type
-            component_id = log.get('component_id', '')
-            
-            if component_id.startswith('pipe'):
-                tag = 'pipe_log'
-                prefix = '[PIPE] '
-            elif component_id.startswith('queue'):
-                tag = 'queue_log'
-                prefix = '[QUEUE] '
-            elif component_id.startswith('shm'):
-                tag = 'shm_log'
-                prefix = '[SHM] '
-            elif component_id.startswith('deadlock'):
-                tag = 'deadlock_log'
-                prefix = '[DEADLOCK] '
-            else:
-                tag = 'other_log'
-                prefix = '[SYSTEM] '
-            
-            # Add log entry with tag
-            log_entry = f"{time_str} {prefix}{component_id}: {log.get('message', '')}\n"
-            self.log_text.insert(tk.END, log_entry, tag)
+        # Get filter settings
+        show_pipes = self.show_pipe_logs.get()
+        show_queues = self.show_queue_logs.get()
+        show_shm = self.show_shm_logs.get()
+        show_deadlocks = self.show_deadlock_logs.get()
         
-        # Configure tags colors
-        self.log_text.tag_configure('pipe_log', foreground='blue')
-        self.log_text.tag_configure('queue_log', foreground='green')
-        self.log_text.tag_configure('shm_log', foreground='purple')
-        self.log_text.tag_configure('deadlock_log', foreground='red')
-        self.log_text.tag_configure('other_log', foreground='black')
-        
+        # Filter entries
+        for entry in self.log_entries:
+            show_entry = True
+            
+            # Apply type filters
+            if "pipe" in entry.lower() and not show_pipes:
+                show_entry = False
+            elif "queue" in entry.lower() and not show_queues:
+                show_entry = False
+            elif "shared memory" in entry.lower() and not show_shm:
+                show_entry = False
+            elif "deadlock" in entry.lower() and not show_deadlocks:
+                show_entry = False
+                
+            # Apply text filter
+            if self.log_filter and self.log_filter.lower() not in entry.lower():
+                show_entry = False
+                
+            # Add filtered entry
+            if show_entry:
+                if self.log_text.index('end-1c') != '1.0':  # If not empty
+                    self.log_text.insert(tk.END, "\n")
+                self.log_text.insert(tk.END, entry)
+                
         self.log_text.config(state=tk.DISABLED)
+        
+        # Restore scroll position - use the position from before the update
+        self._log_scroll_position = current_position
+        self.log_text.yview_moveto(current_position)
     
     def _update_overview_canvas(self):
-        """Update the overview canvas with all IPC activities"""
-        # Clear canvas
+        """Update the overview canvas"""
+        # Clear the canvas
         self.overview_canvas.delete("all")
         
-        # Get dimensions
+        # Get canvas dimensions
         width = self.overview_canvas.winfo_width()
         height = self.overview_canvas.winfo_height()
         
-        # Skip drawing if canvas size is not determined yet
-        if width < 10 or height < 10:
+        # Skip drawing if the canvas is not yet properly initialized
+        if width < 50 or height < 50:
+            # Schedule another attempt
             self.root.after(100, self._update_overview_canvas)
             return
+            
+        # Get current IPC state
+        processes = self.deadlock_detector.processes
+        resources = self.deadlock_detector.resources
+        pipes = self.pipe_debugger.active_pipes
+        queues = self.queue_debugger.active_queues
+        memory_segments = self.shared_mem_debugger.shared_memories
         
-        # Draw background grid
-        for i in range(0, width, 50):
-            self.overview_canvas.create_line(i, 0, i, height, fill="#EEEEEE")
-        for i in range(0, height, 50):
-            self.overview_canvas.create_line(0, i, width, i, fill="#EEEEEE")
-        
-        # Get data from all debuggers
-        pipes = self.pipe_debugger.get_pipe_status()
-        queues = self.queue_debugger.get_queue_status()
-        memory_segments = self.shared_mem_debugger.get_memory_status()
-        processes = self.deadlock_detector.get_process_status()
-        resources = self.deadlock_detector.get_resource_status()
-        
-        # Calculate metrics
+        # Calculate counts for layout decisions
+        active_processes = len(processes)
         active_pipes = len(pipes)
         active_queues = len(queues)
         active_memory = len(memory_segments)
-        active_processes = len(processes)
         
-        total_queue_messages = sum(q.get('message_count', 0) for q in queues.values())
-        total_memory_access = sum(m.get('access_count', 0) for m in memory_segments.values())
-        
-        # Update metric labels
-        self.pipe_count.config(text=f"Active: {active_pipes}")
-        self.queue_count.config(text=f"Active: {active_queues}")
-        self.queue_messages.config(text=f"Messages: {total_queue_messages}")
-        self.shm_count.config(text=f"Active: {active_memory}")
-        self.shm_access.config(text=f"Accesses: {total_memory_access}")
-        
-        self.process_count.config(text=f"Processes: {active_processes}")
-        self.resource_count.config(text=f"Resources: {len(resources)}")
-        self.deadlock_count.config(text=f"Deadlocks: {len(self.deadlock_detector.detect_deadlocks())}")
-        
-        # Mock system metrics (in a real system these would come from actual measurements)
-        cpu_usage = random.randint(10, 80)
-        memory_usage = random.randint(100, 2000)
-        ipc_ops = active_pipes + active_queues + active_memory
-        
-        self.cpu_usage.config(text=f"{cpu_usage}%")
-        self.memory_usage.config(text=f"{memory_usage} MB")
-        self.ipc_throughput.config(text=f"{ipc_ops} ops/sec")
+        # Update active process count in UI
         self.active_process_count.config(text=f"{active_processes}")
         
         # Draw system components
+        # Create mappings to track drawn objects for highlighting
+        drawn_objects = {}
+        
+        # Create process ID mapping
+        process_id_mapping = self._create_process_id_mapping()
+        resource_id_mapping = self._create_resource_id_mapping()
+        
+        # Draw section titles
+        self.overview_canvas.create_text(width/2, 20, text="PROCESSES", font=("Arial", 10, "bold"), fill="navy")
+        
         # Draw processes at the top
         process_y = height * 0.2
         process_spacing = width / (active_processes + 1) if active_processes > 0 else width / 2
         process_positions = {}
         
-        for i, (process_id, process) in enumerate(processes.items()):
+        # Sort processes by ID number for consistent ordering
+        sorted_processes = sorted(processes.items(), 
+                                key=lambda x: int(x[0][1:]) if x[0].startswith("P") and x[0][1:].isdigit() else 999)
+        
+        for i, (process_id, process) in enumerate(sorted_processes):
             x = process_spacing * (i + 1)
             process_positions[process_id] = (x, process_y)
+            
+            # Use the process's original ID for display (P1, P2, etc.)
+            # This ensures ID consistency with logs
+            display_id = process_id
+            if not process_id.startswith("P"):
+                # If not in P# format, use the mapping
+                for pid, mapped_id in process_id_mapping.items():
+                    if pid == process_id and mapped_id.startswith("P"):
+                        display_id = mapped_id
+                        break
             
             # Color based on state (deadlocked processes are red)
             deadlocks = self.deadlock_detector.detect_deadlocks()
             is_deadlocked = any(process_id in cycle for cycle in deadlocks)
             color = "red" if is_deadlocked else ("yellow" if process.get('waiting_for') else "lightblue")
             
+            # Check if this process should be highlighted - check all possible ID formats
+            for elem, highlight_color, expiry_time in self.highlighted_elements:
+                if elem["type"] == "process":
+                    # Get canonical forms for comparison
+                    element_id = self._get_canonical_process_id(elem["id"])
+                    current_process_id = self._get_canonical_process_id(process_id)
+                    
+                    if element_id == current_process_id and time.time() < expiry_time:
+                        # Draw highlight glow effect
+                        glow_radius = 25
+                        self.overview_canvas.create_oval(x-glow_radius, process_y-glow_radius, 
+                                                      x+glow_radius, process_y+glow_radius, 
+                                                      fill=highlight_color, outline="", stipple="gray50")
+                        # Use brighter color for the process circle
+                        color = "white"
+                        break
+            
             # Draw process as circle
-            self.overview_canvas.create_oval(x-15, process_y-15, x+15, process_y+15, 
-                                           fill=color, outline="black")
-            self.overview_canvas.create_text(x, process_y, text=f"P{i+1}")
+            proc_circle = self.overview_canvas.create_oval(x-15, process_y-15, x+15, process_y+15, 
+                                       fill=color, outline="black")
+            proc_text = self.overview_canvas.create_text(x, process_y, text=display_id)
+            
+            # Store reference to drawn objects
+            drawn_objects[f"process_{process_id}"] = (proc_circle, proc_text)
+            drawn_objects[display_id] = (proc_circle, proc_text)
+        
+        # Draw RESOURCES title
+        self.overview_canvas.create_text(width/2, height*0.35, text="RESOURCES", font=("Arial", 10, "bold"), fill="navy")
         
         # Draw resources in the middle
         resource_y = height * 0.5
         resource_spacing = width / (len(resources) + 1) if resources else width / 2
         resource_positions = {}
         
-        for i, (resource_id, resource) in enumerate(resources.items()):
+        # Sort resources by ID number for consistent ordering
+        sorted_resources = sorted(resources.items(), 
+                               key=lambda x: int(x[0][1:]) if x[0].startswith("R") and x[0][1:].isdigit() else 999)
+        
+        for i, (resource_id, resource) in enumerate(sorted_resources):
             x = resource_spacing * (i + 1)
             resource_positions[resource_id] = (x, resource_y)
             
@@ -1908,11 +2643,48 @@ class IPCDebuggerGUI:
                 color = "lightgray"
             else:
                 color = "orange"
+                
+            # Check if this resource should be highlighted
+            for elem, highlight_color, expiry_time in self.highlighted_elements:
+                if elem["type"] == "resource":
+                    # Get canonical forms for comparison
+                    element_id = self._get_canonical_resource_id(elem["id"])
+                    current_resource_id = self._get_canonical_resource_id(resource_id)
+                    
+                    if element_id == current_resource_id and time.time() < expiry_time:
+                        # Draw highlight glow effect
+                        glow_radius = 25
+                        self.overview_canvas.create_rectangle(x-glow_radius, resource_y-glow_radius, 
+                                                          x+glow_radius, resource_y+glow_radius, 
+                                                          fill=highlight_color, outline="", stipple="gray50")
+                        # Use brighter color
+                        color = "white"
+                        break
             
             # Draw resource as rectangle
-            self.overview_canvas.create_rectangle(x-15, resource_y-15, x+15, resource_y+15, 
+            res_rect = self.overview_canvas.create_rectangle(x-15, resource_y-15, x+15, resource_y+15, 
                                                 fill=color, outline="black")
-            self.overview_canvas.create_text(x, resource_y, text=f"R{i+1}")
+            
+            # Use the resource's original ID for display (R1, R2, etc.)
+            # This ensures ID consistency with logs
+            display_id = resource_id
+            if not resource_id.startswith("R"):
+                # If not in R# format, use the mapping
+                for rid, mapped_id in resource_id_mapping.items():
+                    if rid == resource_id and mapped_id.startswith("R"):
+                        display_id = mapped_id
+                        break
+                        
+            res_text = self.overview_canvas.create_text(x, resource_y, text=display_id)
+            
+            # Store reference to drawn objects
+            drawn_objects[f"resource_{resource_id}"] = (res_rect, res_text)
+            drawn_objects[display_id] = (res_rect, res_text)
+        
+        # Draw IPC Mechanism section titles
+        # Only draw if there are any components to display
+        if active_pipes > 0:
+            self.overview_canvas.create_text(width * 0.25, height * 0.6, text="PIPES", font=("Arial", 10, "bold"), fill="navy")
         
         # Draw pipes on the left
         pipe_x = width * 0.25
@@ -1922,8 +2694,16 @@ class IPCDebuggerGUI:
         for i, (pipe_id, pipe) in enumerate(pipes.items()):
             y = pipe_y_start + pipe_spacing * (i + 1)
             
+            # Check if this pipe should be highlighted
+            for elem, highlight_color, expiry_time in self.highlighted_elements:
+                if elem["type"] == "pipe" and elem["id"] == pipe_id and time.time() < expiry_time:
+                    # Draw highlight glow effect
+                    self.overview_canvas.create_rectangle(pipe_x-60, y-15, pipe_x+60, y+15, 
+                                                      fill=highlight_color, outline="", stipple="gray50")
+                    break
+            
             # Draw pipe
-            self.overview_canvas.create_rectangle(pipe_x-50, y-8, pipe_x+50, y+8, 
+            pipe_rect = self.overview_canvas.create_rectangle(pipe_x-50, y-8, pipe_x+50, y+8, 
                                                 fill="lightblue", outline="black")
             
             # Draw status indicator
@@ -1935,9 +2715,16 @@ class IPCDebuggerGUI:
             else:  # bottleneck
                 status_color = "red"
             
-            self.overview_canvas.create_oval(pipe_x+60, y-8, pipe_x+76, y+8, 
+            status_indicator = self.overview_canvas.create_oval(pipe_x+60, y-8, pipe_x+76, y+8, 
                                            fill=status_color, outline="black")
+                                           
+            # Store reference to drawn objects
+            drawn_objects[f"pipe_{pipe_id}"] = (pipe_rect, status_indicator)
         
+        # Draw queue title if needed
+        if active_queues > 0:
+            self.overview_canvas.create_text(width * 0.5, height * 0.6, text="MESSAGE QUEUES", font=("Arial", 10, "bold"), fill="navy")
+            
         # Draw queues in the middle
         queue_x = width * 0.5
         queue_y_start = height * 0.7
@@ -1951,19 +2738,34 @@ class IPCDebuggerGUI:
             message_count = queue.get('message_count', 0)
             fill_ratio = message_count / capacity if capacity > 0 else 0
             
+            # Check if this queue should be highlighted
+            for elem, highlight_color, expiry_time in self.highlighted_elements:
+                if elem["type"] == "queue" and elem["id"] == queue_id and time.time() < expiry_time:
+                    # Draw highlight glow effect
+                    self.overview_canvas.create_rectangle(queue_x-45, y-25, queue_x+45, y+25, 
+                                                      fill=highlight_color, outline="", stipple="gray50")
+                    break
+            
             # Draw queue
             queue_width = 70
             fill_width = queue_width * fill_ratio
             
-            self.overview_canvas.create_rectangle(queue_x-35, y-15, queue_x+35, y+15, 
+            queue_outline = self.overview_canvas.create_rectangle(queue_x-35, y-15, queue_x+35, y+15, 
                                                 fill="white", outline="black")
             
             if fill_width > 0:
-                self.overview_canvas.create_rectangle(queue_x-35, y-15, queue_x-35+fill_width, y+15, 
+                queue_fill = self.overview_canvas.create_rectangle(queue_x-35, y-15, queue_x-35+fill_width, y+15, 
                                                     fill="green", outline="")
             
-            self.overview_canvas.create_text(queue_x, y, text=f"{message_count}/{capacity}")
+            queue_text = self.overview_canvas.create_text(queue_x, y, text=f"{message_count}/{capacity}")
+            
+            # Store reference to drawn objects
+            drawn_objects[f"queue_{queue_id}"] = (queue_outline, queue_text)
         
+        # Draw shared memory title if needed
+        if active_memory > 0:
+            self.overview_canvas.create_text(width * 0.75, height * 0.6, text="SHARED MEMORY", font=("Arial", 10, "bold"), fill="navy")
+            
         # Draw shared memory segments on the right
         shm_x = width * 0.75
         shm_y_start = height * 0.7
@@ -1972,18 +2774,29 @@ class IPCDebuggerGUI:
         for i, (memory_id, memory) in enumerate(memory_segments.items()):
             y = shm_y_start + shm_spacing * (i + 1)
             
+            # Check if this memory segment should be highlighted
+            for elem, highlight_color, expiry_time in self.highlighted_elements:
+                if elem["type"] == "shm" and elem["id"] == memory_id and time.time() < expiry_time:
+                    # Draw highlight glow effect
+                    self.overview_canvas.create_rectangle(shm_x-50, y-30, shm_x+50, y+30, 
+                                                      fill=highlight_color, outline="", stipple="gray50")
+                    break
+            
             # Draw memory segment
-            self.overview_canvas.create_rectangle(shm_x-40, y-20, shm_x+40, y+20, 
+            shm_rect = self.overview_canvas.create_rectangle(shm_x-40, y-20, shm_x+40, y+20, 
                                                 fill="lightyellow", outline="black")
             
             # Draw locked regions if any
             locked_regions = memory.get('locked_regions', [])
             if locked_regions:
-                self.overview_canvas.create_rectangle(shm_x-30, y-10, shm_x-10, y+10, 
+                lock_indicator = self.overview_canvas.create_rectangle(shm_x-30, y-10, shm_x-10, y+10, 
                                                     fill="red", outline="black")
-                self.overview_canvas.create_text(shm_x, y, text=f"Locked: {len(locked_regions)}")
+                shm_text = self.overview_canvas.create_text(shm_x, y, text=f"Locked: {len(locked_regions)}")
             else:
-                self.overview_canvas.create_text(shm_x, y, text="Unlocked")
+                shm_text = self.overview_canvas.create_text(shm_x, y, text="Unlocked")
+                
+            # Store reference to drawn objects
+            drawn_objects[f"shm_{memory_id}"] = (shm_rect, shm_text)
         
         # Draw relationships between processes and resources
         for process_id, process in processes.items():
@@ -1994,74 +2807,155 @@ class IPCDebuggerGUI:
                 for resource_id in process.get('owns', []):
                     if resource_id in resource_positions:
                         rx, ry = resource_positions[resource_id]
-                        self.overview_canvas.create_line(px, py+15, rx, ry-15, 
-                                                       arrow=tk.LAST, fill="black")
+                        # Draw ownership line with animation effect if it's highlighted
+                        highlighted = False
+                        for elem, highlight_color, expiry_time in self.highlighted_elements:
+                            if ((elem["type"] == "process" and elem["id"] == process_id) or
+                                (elem["type"] == "resource" and elem["id"] == resource_id)) and time.time() < expiry_time:
+                                highlighted = True
+                                break
+                                
+                        if highlighted:
+                            # Draw animated line (dashed, thicker, different color)
+                            self.overview_canvas.create_line(px, py+15, rx, ry-15, 
+                                                          arrow=tk.LAST, fill="blue", width=2,
+                                                          dash=(5, 2))
+                        else:
+                            # Normal line
+                            self.overview_canvas.create_line(px, py+15, rx, ry-15, 
+                                                          arrow=tk.LAST, fill="black")
                 
                 # Draw waiting relationships
                 waiting_for = process.get('waiting_for')
                 if waiting_for and waiting_for in resource_positions:
                     rx, ry = resource_positions[waiting_for]
-                    self.overview_canvas.create_line(px, py+15, rx, ry-15, 
-                                                   arrow=tk.LAST, fill="red", dash=(4, 4))
+                    # Draw waiting line with animation effect if it's highlighted
+                    highlighted = False
+                    for elem, highlight_color, expiry_time in self.highlighted_elements:
+                        if ((elem["type"] == "process" and elem["id"] == process_id) or
+                            (elem["type"] == "resource" and elem["id"] == waiting_for)) and time.time() < expiry_time:
+                            highlighted = True
+                            break
+                            
+                    if highlighted:
+                        # Draw animated line (thicker)
+                        self.overview_canvas.create_line(px, py+15, rx, ry-15, 
+                                                      arrow=tk.LAST, fill="purple", width=2,
+                                                      dash=(3, 2))
+                    else:
+                        # Normal waiting line
+                        self.overview_canvas.create_line(px, py+15, rx, ry-15, 
+                                                      arrow=tk.LAST, fill="red", dash=(4, 4))
+        
+        # Clean up expired highlights
+        current_time = time.time()
+        self.highlighted_elements = [(elem, color, expiry) for elem, color, expiry in self.highlighted_elements 
+                                    if current_time < expiry]
+        
+        # Schedule another update if there are still active highlights
+        if self.highlighted_elements:
+            self.root.after(100, self._update_overview_canvas)
     
     def _apply_log_filter(self):
-        """Apply a filter to the log text"""
-        filter_text = self.log_filter_var.get()
+        """Apply the filter text to the log entries"""
+        filter_text = self.log_filter_var.get().strip()
         if filter_text:
             self.log_filter = filter_text
-            self._update_log_text()
-            self.status_bar.config(text=f"Log filter applied: '{filter_text}'")
+            self._update_status(f"Log filter applied: '{filter_text}'")
         else:
-            self._clear_log_filter()
+            self.log_filter = None
+            self._update_status("Log filter cleared")
+        
+        # Update the log display with the filter
+        self._update_log_text()
     
     def _clear_log_filter(self):
-        """Clear the current log filter"""
+        """Clear the log filter"""
         self.log_filter_var.set("")
         self.log_filter = None
+        self._update_status("Log filter cleared")
+        
+        # Update the log display
         self._update_log_text()
-        self.status_bar.config(text="Log filter cleared")
-
+    
     def _refresh_ui(self):
-        """Refresh all UI elements"""
+        """Refresh all UI elements at a consistent rate"""
+        # Throttle the refresh rate to prevent excessive redraws
+        now = time.time()
+        if hasattr(self, '_last_refresh_time') and now - self._last_refresh_time < 0.5:  # Max 2 fps
+            # Schedule next refresh without performing updates
+            self.root.after(self.refresh_rate, self._refresh_ui)
+            return
+
+        self._last_refresh_time = now
+        
+        # Update individual tabs
         self._update_pipe_ui()
         self._update_queue_ui()
         self._update_shm_ui()
         self._update_deadlock_ui()
         self._update_log_text()
+        
+        # Update overview last, to include latest information
         self._update_overview_canvas()
         
         # Schedule next refresh
         self.root.after(self.refresh_rate, self._refresh_ui)
 
     def _request_resource(self):
-        """Request a resource for a process (set process as waiting for a resource)"""
+        """Request a resource for a process"""
         process_id = self.selected_process_var.get()
         resource_id = self.selected_resource_var.get()
         
         if process_id and resource_id:
-            # Check if this resource is already owned
-            resource_status = self.deadlock_detector.get_resource_status().get(resource_id, {})
-            owner = resource_status.get('owner')
+            # Create an input dialog to get number of instances
+            instances_dialog = tk.Toplevel(self.root)
+            instances_dialog.title("Resource Instances")
+            instances_dialog.transient(self.root)
+            instances_dialog.grab_set()
             
-            if owner:
-                # Resource is owned, add process to waiters
-                self.deadlock_detector.add_waiting_process(resource_id, process_id)
-                self.deadlock_detector.add_log_entry(
-                    "deadlock_detector", 
-                    f"Process {process_id} waiting for resource {resource_id} (owned by {owner})"
-                )
-                self.status_bar.config(text=f"Process {process_id} is now waiting for resource {resource_id}")
-            else:
-                # Resource is free, assign it to the process
-                self.deadlock_detector.set_resource_owner(resource_id, process_id)
-                self.deadlock_detector.add_log_entry(
-                    "deadlock_detector", 
-                    f"Process {process_id} acquired resource {resource_id}"
-                )
-                self.status_bar.config(text=f"Process {process_id} acquired resource {resource_id}")
+            dialog_frame = ttk.Frame(instances_dialog, padding=10)
+            dialog_frame.pack(fill=tk.BOTH, expand=True)
             
-            # Update UI
-            self._update_deadlock_ui()
+            ttk.Label(dialog_frame, text=f"How many instances of {resource_id}\ndo you want to request for {process_id}?").pack(pady=5)
+            
+            instances_var = tk.StringVar(value="1")
+            ttk.Entry(dialog_frame, textvariable=instances_var, width=10).pack(pady=5)
+            
+            def on_confirm():
+                try:
+                    instances = int(instances_var.get())
+                    if instances <= 0:
+                        raise ValueError("Instances must be greater than 0")
+                    
+                    # Close dialog
+                    instances_dialog.destroy()
+                    
+                    # Request the resource
+                    result = self.deadlock_detector.request_resource(process_id, resource_id, instances)
+                    
+                    if result:
+                        self.status_bar.config(text=f"Process {process_id} acquired {instances} instance(s) of {resource_id}")
+                    else:
+                        self.status_bar.config(text=f"Process {process_id} waiting for {instances} instance(s) of {resource_id}")
+                    
+                    self._update_deadlock_ui()
+                except ValueError as e:
+                    messagebox.showerror("Input Error", str(e))
+            
+            button_frame = ttk.Frame(dialog_frame)
+            button_frame.pack(pady=10)
+            
+            ttk.Button(button_frame, text="OK", command=on_confirm).pack(side=tk.LEFT, padx=5)
+            ttk.Button(button_frame, text="Cancel", command=instances_dialog.destroy).pack(side=tk.LEFT, padx=5)
+            
+            # Center the dialog
+            instances_dialog.update_idletasks()
+            w = instances_dialog.winfo_width()
+            h = instances_dialog.winfo_height()
+            x = (self.root.winfo_width() - w) // 2 + self.root.winfo_x()
+            y = (self.root.winfo_height() - h) // 2 + self.root.winfo_y()
+            instances_dialog.geometry(f"{w}x{h}+{x}+{y}")
     
     def _release_resource(self):
         """Release a resource from a process"""
@@ -2069,88 +2963,139 @@ class IPCDebuggerGUI:
         resource_id = self.selected_resource_var.get()
         
         if process_id and resource_id:
-            # Check if this process owns the resource
-            resource_status = self.deadlock_detector.get_resource_status().get(resource_id, {})
-            if resource_status.get('owner') == process_id:
-                # Release the resource
-                self.deadlock_detector.release_resource(resource_id)
-                self.deadlock_detector.add_log_entry(
-                    "deadlock_detector", 
-                    f"Process {process_id} released resource {resource_id}"
-                )
-                self.status_bar.config(text=f"Resource {resource_id} released by process {process_id}")
-                
-                # Check if there are waiters
-                waiters = resource_status.get('waiters', [])
-                if waiters:
-                    # Assign to first waiter
-                    new_owner = waiters[0]
-                    self.deadlock_detector.remove_waiting_process(resource_id, new_owner)
-                    self.deadlock_detector.set_resource_owner(resource_id, new_owner)
-                    self.deadlock_detector.add_log_entry(
-                        "deadlock_detector", 
-                        f"Resource {resource_id} assigned to waiting process {new_owner}"
-                    )
-            else:
-                self.status_bar.config(text=f"Process {process_id} doesn't own resource {resource_id}")
+            # Check if the process actually owns this resource
+            process_info = self.deadlock_detector.get_process_status().get(process_id, {})
+            if resource_id not in process_info.get('owns', []):
+                self.status_bar.config(text=f"Process {process_id} does not own resource {resource_id}")
+                return
             
-            # Update UI
-            self._update_deadlock_ui()
+            # Get the current allocation
+            resource_info = self.deadlock_detector.get_resource_status().get(resource_id, {})
+            current_allocation = resource_info.get('allocations', {}).get(process_id, 0)
+            
+            if current_allocation <= 0:
+                self.status_bar.config(text=f"Process {process_id} does not have any instances of {resource_id}")
+                return
+            
+            # Create an input dialog to get number of instances to release
+            instances_dialog = tk.Toplevel(self.root)
+            instances_dialog.title("Release Instances")
+            instances_dialog.transient(self.root)
+            instances_dialog.grab_set()
+            
+            dialog_frame = ttk.Frame(instances_dialog, padding=10)
+            dialog_frame.pack(fill=tk.BOTH, expand=True)
+            
+            ttk.Label(dialog_frame, text=f"Process {process_id} has {current_allocation} instance(s) of {resource_id}.\nHow many do you want to release?").pack(pady=5)
+            
+            instances_var = tk.StringVar(value=str(current_allocation))
+            ttk.Entry(dialog_frame, textvariable=instances_var, width=10).pack(pady=5)
+            
+            def on_confirm():
+                try:
+                    instances = int(instances_var.get())
+                    if instances <= 0 or instances > current_allocation:
+                        raise ValueError(f"Instances must be between 1 and {current_allocation}")
+                    
+                    # Close dialog
+                    instances_dialog.destroy()
+                    
+                    # Release the resource
+                    self.deadlock_detector.release_resource(process_id, resource_id, instances)
+                    
+                    self.status_bar.config(text=f"Process {process_id} released {instances} instance(s) of {resource_id}")
+                    self._update_deadlock_ui()
+                except ValueError as e:
+                    messagebox.showerror("Input Error", str(e))
+            
+            button_frame = ttk.Frame(dialog_frame)
+            button_frame.pack(pady=10)
+            
+            ttk.Button(button_frame, text="OK", command=on_confirm).pack(side=tk.LEFT, padx=5)
+            ttk.Button(button_frame, text="Cancel", command=instances_dialog.destroy).pack(side=tk.LEFT, padx=5)
+            
+            # Center the dialog
+            instances_dialog.update_idletasks()
+            w = instances_dialog.winfo_width()
+            h = instances_dialog.winfo_height()
+            x = (self.root.winfo_width() - w) // 2 + self.root.winfo_x()
+            y = (self.root.winfo_height() - h) // 2 + self.root.winfo_y()
+            instances_dialog.geometry(f"{w}x{h}+{x}+{y}")
     
     def _simulate_deadlock(self):
-        """Simulate a deadlock scenario"""
-        try:
-            # Get number of processes and resources to create
-            num_processes = int(self.sim_processes_var.get() or "3")
-            num_resources = int(self.sim_resources_var.get() or "3")
-            
-            # Clear existing data
-            self.deadlock_detector.clear_all()
-            
-            # Create processes
-            processes = [f"p{i+1}" for i in range(num_processes)]
-            for p_id in processes:
-                self.deadlock_detector.register_process(p_id)
-            
-            # Create resources
-            resources = [f"r{i+1}" for i in range(num_resources)]
-            for r_id in resources:
-                self.deadlock_detector.register_resource(r_id)
-            
-            # Create deadlock if we have at least 2 processes and 2 resources
-            if num_processes >= 2 and num_resources >= 2:
-                # Simple deadlock: circular wait
-                for i in range(num_processes):
-                    # Each process owns one resource
-                    self.deadlock_detector.set_resource_owner(resources[i % num_resources], processes[i])
-                    
-                    # Each process waits for the next resource (circular)
-                    next_resource = resources[(i + 1) % num_resources]
-                    self.deadlock_detector.add_waiting_process(next_resource, processes[i])
-                
-                self.deadlock_detector.add_log_entry(
-                    "deadlock_detector", 
-                    f"Simulated deadlock with {num_processes} processes and {num_resources} resources"
-                )
-                self.status_bar.config(text=f"Deadlock simulation created with {num_processes} processes and {num_resources} resources")
-            else:
-                # Just assign resources without deadlock
-                for i in range(min(num_processes, num_resources)):
-                    self.deadlock_detector.set_resource_owner(resources[i], processes[i])
-                
-                self.deadlock_detector.add_log_entry(
-                    "deadlock_detector", 
-                    f"Created {num_processes} processes and {num_resources} resources without deadlock"
-                )
-                self.status_bar.config(text="Resources assigned without creating deadlock")
-            
-            # Update UI
-            self._update_deadlock_ui()
-            self._analyze_deadlocks()
-            
-        except ValueError:
-            messagebox.showerror("Error", "Please enter valid numbers for processes and resources")
+        """Simulate a deadlock scenario or stop an ongoing simulation"""
+        # If simulation is active, stop it
+        if self.deadlock_simulation_active:
+            self.deadlock_simulation_active = False
+            self.deadlock_sim_button.configure(text="Simulate Deadlock")
+            self._update_status("Deadlock simulation stopped")
             return
+            
+        # Otherwise, start a new simulation
+        self.deadlock_simulation_active = True
+        self.deadlock_sim_button.configure(text="Stop Simulation")
+        
+        # Reset current state for clean simulation
+        self.deadlock_detector.clear_all()
+        
+        # Get simulation parameters
+        try:
+            process_count = int(self.sim_processes_var.get())
+            resource_count = int(self.sim_resources_var.get())
+            
+            if process_count < 2 or resource_count < 2:
+                messagebox.showwarning("Invalid Parameters", "Need at least 2 processes and 2 resources to create a deadlock.")
+                # Reset button state
+                self.deadlock_simulation_active = False
+                self.deadlock_sim_button.configure(text="Simulate Deadlock")
+                return
+        except ValueError:
+            messagebox.showerror("Input Error", "Please enter valid numbers for processes and resources.")
+            # Reset button state
+            self.deadlock_simulation_active = False
+            self.deadlock_sim_button.configure(text="Simulate Deadlock")
+            return
+        
+        # Create processes
+        processes = []
+        for i in range(process_count):
+            p_id = f"P{i+1}"
+            self.deadlock_detector.register_process(p_id)
+            processes.append(p_id)
+            self._log_event(f"Registered process {p_id}")
+            
+        # Create resources with varying instances - in sequential order
+        resources = []
+        for i in range(resource_count):
+            r_id = f"R{i+1}"
+            # Randomly decide number of instances (1-3)
+            instances = random.randint(1, 3)
+            self.deadlock_detector.register_resource(r_id, instances=instances)
+            resources.append((r_id, instances))
+            self._log_event(f"Registered resource {r_id}")
+        
+        # Allocate initial resources
+        for i, p_id in enumerate(processes):
+            # Each process gets one resource initially
+            r_id, max_instances = resources[i % resource_count]
+            # Allocate 1 or more instances but leave some available for others
+            allocated = random.randint(1, max(1, max_instances - 1))
+            self.deadlock_detector.request_resource(p_id, r_id, allocated)
+            
+        # Create circular wait condition
+        for i, p_id in enumerate(processes):
+            # Each process requests the next resource in the chain
+            r_id, max_instances = resources[(i + 1) % resource_count]
+            # Request more instances than available to ensure blocking
+            requested = random.randint(1, max_instances)
+            self.deadlock_detector.request_resource(p_id, r_id, requested)
+            
+        # Update status
+        self.status_bar.config(text=f"Simulated deadlock with {process_count} processes and {resource_count} resources")
+        
+        # Update UI and analyze
+        self._update_deadlock_ui()
+        self._analyze_deadlocks()
     
     def _on_shm_selected(self, event=None):
         """Handle selection of a shared memory segment from dropdown"""
@@ -2261,3 +3206,295 @@ class IPCDebuggerGUI:
             
             # Reset process ID
             self.memory_process_id_var.set("")
+    
+    def _toggle_log_pause(self):
+        """Toggle the event log pause state"""
+        self.log_paused = not self.log_paused
+        if self.log_paused:
+            self.log_pause_button.configure(text="Resume Log")
+            self._update_status("Event log updates paused")
+        else:
+            self.log_pause_button.configure(text="Pause Log")
+            self._update_status("Event log updates resumed")
+            # Force update with current data
+            self._update_log_text()
+    
+    def _clear_log(self):
+        """Clear the event log"""
+        self.log_entries = []
+        self.log_text.config(state=tk.NORMAL)
+        self.log_text.delete(1.0, tk.END)
+        self.log_text.config(state=tk.DISABLED)
+        self._update_status("Event log cleared")
+    
+    def _export_log(self):
+        """Export the event log to a file"""
+        from tkinter import filedialog
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".txt",
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+            title="Export Event Log"
+        )
+        
+        if file_path:
+            try:
+                with open(file_path, 'w') as f:
+                    for entry in self.log_entries:
+                        f.write(f"{entry}\n")
+                self._update_status(f"Event log exported to {file_path}")
+            except Exception as e:
+                self._update_status(f"Error exporting log: {str(e)}")
+    
+    def _log_event(self, message):
+        """Log an event with timestamp"""
+        timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        log_entry = f"[{timestamp}] {message}"
+        
+        # Add to log entries list, keeping only the maximum number
+        self.log_entries.append(log_entry)
+        
+        # Trim log if it gets too large
+        if len(self.log_entries) > self.max_log_entries:
+            self.log_entries = self.log_entries[-self.max_log_entries:]
+        
+        # Extract information about the event for overview highlighting
+        highlighted_element = None
+        highlight_color = "yellow"
+        if "pipe" in message.lower():
+            pipe_id = None
+            for word in message.split():
+                if word.startswith("pipe_"):
+                    pipe_id = word
+                    break
+            if pipe_id:
+                highlighted_element = {"type": "pipe", "id": pipe_id}
+                
+        elif "queue" in message.lower():
+            queue_id = None
+            for word in message.split():
+                if word.startswith("queue_"):
+                    queue_id = word
+                    break
+            if queue_id:
+                highlighted_element = {"type": "queue", "id": queue_id}
+                
+        elif "shared memory" in message.lower() or "shm_" in message.lower():
+            shm_id = None
+            for word in message.split():
+                if word.startswith("shm_"):
+                    shm_id = word
+                    break
+            if shm_id:
+                highlighted_element = {"type": "shm", "id": shm_id}
+                
+        elif any(x in message.lower() for x in ["process", "resource", "deadlock"]):
+            # Highlight any process or resource mentioned
+            process_id = None
+            for word in message.split():
+                # Match both "P5" format and "process_XXXX" format
+                if word.startswith("P") and len(word) < 4:
+                    process_id = word
+                    highlighted_element = {"type": "process", "id": process_id}
+                    if "deadlock" in message.lower():
+                        highlight_color = "red"
+                    break
+                elif word.startswith("process_"):
+                    process_id = word
+                    # Get the canonical form of the process ID
+                    canonical_id = self._get_canonical_process_id(process_id)
+                    highlighted_element = {"type": "process", "id": canonical_id}
+                    if "deadlock" in message.lower():
+                        highlight_color = "red"
+                    break
+                elif word.startswith("R") and len(word) < 4:
+                    resource_id = word
+                    # Get the canonical form of the resource ID
+                    canonical_id = self._get_canonical_resource_id(resource_id)
+                    highlighted_element = {"type": "resource", "id": canonical_id}
+                    break
+                    
+        # Store the highlighted element for next overview update
+        if highlighted_element:
+            # If this is a new process we're seeing in logs, try to register it
+            if highlighted_element["type"] == "process" and highlighted_element["id"].startswith("process_"):
+                pid = highlighted_element["id"].replace("process_", "")
+                # Check if this process isn't already registered
+                if not any(p_id == pid for p_id in self.deadlock_detector.processes):
+                    # Add process to system for tracking and visualization
+                    self.deadlock_detector.register_process(pid)
+                    # Force a refresh of the process mappings
+                    self._create_process_id_mapping()
+            
+            # Track all highlighted elements for better visibility on the overview
+            self.highlighted_elements.append((highlighted_element, highlight_color, time.time() + 3))  # Highlight for 3 seconds
+            
+            # Force immediate overview update to show highlight
+            # Only update UI if not throttled
+            current_time = time.time()
+            if current_time - self.last_ui_update >= self.ui_update_interval:
+                self._update_overview_canvas()
+                self.last_ui_update = current_time
+
+        # If not paused, update the display
+        if not self.log_paused and (len(self.log_entries) % 10 == 0):  # Only update UI every 10 entries
+            # Save current scroll position
+            text_widget = self.log_text
+            current_position = text_widget.yview()[0]
+            
+            text_widget.config(state=tk.NORMAL)
+            
+            # Check if scrolled to bottom
+            was_at_bottom = False
+            if text_widget.yview()[1] > 0.9:  # If showing the last 10% of content
+                was_at_bottom = True
+            
+            # Clear and repopulate with recent entries
+            text_widget.delete(1.0, tk.END)
+            
+            # Show the last 100 entries or as many as we have
+            display_entries = self.log_entries[-100:] if len(self.log_entries) > 100 else self.log_entries
+            for i, entry in enumerate(display_entries):
+                if i > 0:
+                    text_widget.insert(tk.END, "\n")
+                text_widget.insert(tk.END, entry)
+            
+            # Apply filtering if set
+            if self.log_filter:
+                self._apply_log_filter()
+            else:
+                # Auto-scroll only if we were already at the bottom
+                if was_at_bottom:
+                    text_widget.see(tk.END)
+                else:
+                    # Otherwise maintain the current scroll position
+                    text_widget.yview_moveto(current_position)
+                    # Update the saved position to match
+                    self._log_scroll_position = current_position
+                
+            text_widget.config(state=tk.DISABLED)
+    
+    def _update_status(self, message):
+        """Update the status bar with a message"""
+        self.status_bar.config(text=message)
+        # Log the status message to the console for debugging
+        print(f"Status: {message}")
+
+    def _update_system_metrics(self):
+        """Update system metrics display with real values instead of simulated ones"""
+        # Use actual IPC activity rather than random values
+        active_processes = len(self.pipe_debugger.active_pipes) + len(self.queue_debugger.active_queues) + len(self.shared_mem_debugger.shared_memories)
+        self.active_process_count.config(text=str(active_processes))
+        
+        # Update IPC counts in summary with real data
+        self.pipe_count.config(text=f"Active: {len(self.pipe_debugger.active_pipes)}")
+        self.queue_count.config(text=f"Active: {len(self.queue_debugger.active_queues)}")
+        
+        # Calculate total messages in queues
+        total_messages = 0
+        for queue_info in self.queue_debugger.active_queues.values():
+            total_messages += queue_info.get('message_count', 0)
+        self.queue_messages.config(text=f"Messages: {total_messages}")
+        
+        # Update shared memory counters
+        self.shm_count.config(text=f"Active: {len(self.shared_mem_debugger.shared_memories)}")
+        
+        # Calculate total memory accesses
+        total_accesses = 0
+        for shm_info in self.shared_mem_debugger.shared_memories.values():
+            total_accesses += shm_info.get('access_count', 0)
+        self.shm_access.config(text=f"Accesses: {total_accesses}")
+        
+        # Update deadlock counters
+        self.process_count.config(text=f"Processes: {len(self.deadlock_detector.processes)}")
+        self.resource_count.config(text=f"Resources: {len(self.deadlock_detector.resources)}")
+        
+        # Check for deadlocks
+        deadlocks = self.deadlock_detector.detect_deadlocks()
+        self.deadlock_count.config(text=f"Deadlocks: {len(deadlocks)}")
+        
+        # Calculate operations per second based on recent log entries
+        recent_entries = 0
+        now = time.time()
+        for entry in reversed(self.log_entries):
+            # Try to extract timestamp from log entry
+            try:
+                timestamp_str = entry.split(']')[0].strip('[')
+                entry_time = datetime.datetime.strptime(timestamp_str, "%H:%M:%S.%f").time()
+                current_time = datetime.datetime.now().time()
+                
+                # Count entries from the last 5 seconds
+                if (current_time.hour == entry_time.hour and 
+                    current_time.minute == entry_time.minute and 
+                    current_time.second - entry_time.second <= 5):
+                    recent_entries += 1
+            except:
+                pass
+        
+        ops_per_sec = recent_entries // 5 if recent_entries > 0 else 0
+        self.ipc_throughput.config(text=f"{ops_per_sec} ops/sec")
+        
+        # Update overview canvas to reflect current state
+        self._update_overview_canvas()
+
+    def _create_process_id_mapping(self):
+        """Create a mapping between different process ID formats for consistent reference"""
+        mapping = {}
+        
+        # Map processes from deadlock detector
+        for i, process_id in enumerate(self.deadlock_detector.processes.keys()):
+            short_id = f"P{i+1}"
+            mapping[process_id] = short_id
+            mapping[short_id] = process_id
+            
+            # Also map process_XXX format
+            if not process_id.startswith("process_"):
+                process_long_id = f"process_{process_id}"
+                mapping[process_long_id] = short_id
+                mapping[short_id] = process_long_id
+        
+        return mapping
+
+    def _create_resource_id_mapping(self):
+        """Create a mapping between different resource ID formats for consistent reference"""
+        mapping = {}
+        
+        # Instead of relying on enumeration order, we need to preserve original IDs
+        # This ensures R4 in logs remains R4 in the diagram
+        for resource_id in self.deadlock_detector.resources.keys():
+            # If the resource ID already follows the R# format, keep it as is
+            if resource_id.startswith("R") and resource_id[1:].isdigit():
+                mapping[resource_id] = resource_id
+            else:
+                # For other formats, assign a sequential number
+                next_id = len(mapping) // 2 + 1
+                short_id = f"R{next_id}"
+                mapping[resource_id] = short_id
+                mapping[short_id] = resource_id
+        
+        return mapping
+        
+    def _get_canonical_process_id(self, process_id):
+        """Convert any process ID format to its canonical form"""
+        mapping = self._create_process_id_mapping()
+        
+        if process_id in mapping:
+            return mapping[process_id]
+            
+        # If not in mapping but has process_ prefix, try to extract numeric part
+        if process_id.startswith("process_"):
+            numeric_id = process_id.replace("process_", "")
+            if numeric_id in mapping:
+                return mapping[numeric_id]
+                
+        # If not found in mapping, return original
+        return process_id
+        
+    def _get_canonical_resource_id(self, resource_id):
+        """Convert any resource ID format to its canonical form"""
+        mapping = self._create_resource_id_mapping()
+        
+        if resource_id in mapping:
+            return mapping[resource_id]
+                
+        # If not found in mapping, return original
+        return resource_id

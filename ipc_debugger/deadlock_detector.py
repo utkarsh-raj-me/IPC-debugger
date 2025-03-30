@@ -94,19 +94,60 @@ class DeadlockDetector:
     
     def _detect_deadlocks_from_snapshot(self, resources, processes):
         """Detect deadlocks using a snapshot of resources and processes"""
-        # Build a wait-for graph as adjacency list
-        wait_for = {}
-        for process_id, process in processes.items():
-            if process['waiting_for'] is not None:
-                resource_id = process['waiting_for']
-                if resource_id in resources:
-                    owner = resources[resource_id]['owner']
-                    if owner is not None:
-                        if process_id not in wait_for:
-                            wait_for[process_id] = []
-                        wait_for[process_id].append(owner)
+        # For multi-instance resources, we need to implement the Banker's Algorithm
+        # First, check if we can satisfy all waiting processes
         
-        # Check if we can use networkx
+        # Build allocation matrix, max matrix, and available resources vector
+        resource_ids = list(resources.keys())
+        process_ids = list(processes.keys())
+        
+        if not resource_ids or not process_ids:
+            return []  # No resources or processes to check
+        
+        # Create allocation matrix (what each process currently has)
+        allocation = {}
+        for p_id in process_ids:
+            allocation[p_id] = {}
+            for r_id in resource_ids:
+                if r_id in resources and p_id in resources[r_id]['allocations']:
+                    allocation[p_id][r_id] = resources[r_id]['allocations'][p_id]
+                else:
+                    allocation[p_id][r_id] = 0
+        
+        # Create need matrix (what each process might still need)
+        need = {}
+        for p_id in process_ids:
+            need[p_id] = {}
+            for r_id in resource_ids:
+                if processes[p_id]['waiting_for'] == r_id and p_id in resources[r_id]['waiting_for']:
+                    need[p_id][r_id] = resources[r_id]['waiting_for'][p_id]
+                else:
+                    need[p_id][r_id] = 0
+        
+        # Available resources vector
+        available = {}
+        for r_id in resource_ids:
+            available[r_id] = resources[r_id]['available_instances']
+        
+        # Build wait-for graph for processes that are definitely waiting
+        wait_for = {}
+        for p_id, process in processes.items():
+            if process['waiting_for'] is not None:
+                wait_resource = process['waiting_for']
+                
+                # Check if this resource is allocated to any process
+                allocating_processes = []
+                for other_p_id, other_p in processes.items():
+                    if wait_resource in other_p['owns'] and other_p_id != p_id:
+                        # This process has some of the resource we need
+                        allocating_processes.append(other_p_id)
+                
+                if allocating_processes:
+                    if p_id not in wait_for:
+                        wait_for[p_id] = []
+                    wait_for[p_id].extend(allocating_processes)
+        
+        # Check if we can use networkx for cycle detection
         if self._has_networkx and self.nx:
             # Use networkx for cycle detection
             G = self.nx.DiGraph()
@@ -120,36 +161,10 @@ class DeadlockDetector:
                 for neighbor in neighbors:
                     G.add_edge(process_id, neighbor)
             
-            # Find cycles (deadlocks) with timeout protection
             try:
-                # For large graphs, simple_cycles can be expensive
-                # So we use a timeout mechanism
-                if len(processes) > 50:  # Only apply timeout for large graphs
-                    import signal
-                    
-                    class TimeoutException(Exception):
-                        pass
-                    
-                    def timeout_handler(signum, frame):
-                        raise TimeoutException()
-                    
-                    # Set a 2-second timeout
-                    signal.signal(signal.SIGALRM, timeout_handler)
-                    signal.alarm(2)
-                    
-                    try:
-                        deadlocks = list(self.nx.simple_cycles(G))
-                        signal.alarm(0)  # Disable the alarm
-                        return deadlocks
-                    except TimeoutException:
-                        # Cycle detection timed out, fall back to simple detection
-                        pass
-                    finally:
-                        signal.alarm(0)  # Ensure the alarm is disabled
-                else:
-                    # For small graphs, use regular detection
-                    deadlocks = list(self.nx.simple_cycles(G))
-                    return deadlocks
+                # For large graphs, simple_cycles can be expensive, so we use a timeout
+                deadlocks = list(self.nx.simple_cycles(G))
+                return deadlocks
             except Exception:
                 # Fallback to simple detection on any error
                 pass
@@ -186,17 +201,23 @@ class DeadlockDetector:
         
         return deadlocks
     
-    def register_resource(self, resource_id, resource_type='lock'):
-        """Register a resource for deadlock tracking"""
+    def register_resource(self, resource_id, resource_type='lock', instances=1):
+        """Register a resource for deadlock tracking with multiple instances"""
+        if instances <= 0:
+            raise ValueError("Number of instances must be positive")
+            
         with self._lock:
             if resource_id in self.resources:
                 return False
             
             self.resources[resource_id] = {
                 'type': resource_type,
-                'owner': None,
+                'total_instances': instances,
+                'available_instances': instances,
+                'allocations': {},  # Process ID -> number of instances allocated
                 'waiters': [],
                 'waiter_timestamps': {},  # Track when processes started waiting
+                'waiting_for': {},  # Process ID -> number of instances requested
                 'state': 'free'
             }
             
@@ -204,7 +225,8 @@ class DeadlockDetector:
                 'time': time.time(),
                 'action': 'resource_registered',
                 'resource_id': resource_id,
-                'resource_type': resource_type
+                'resource_type': resource_type,
+                'instances': instances
             })
             
             return True
@@ -228,8 +250,11 @@ class DeadlockDetector:
             
             return True
     
-    def request_resource(self, process_id, resource_id):
-        """Track a process requesting a resource"""
+    def request_resource(self, process_id, resource_id, instances=1):
+        """Track a process requesting multiple instances of a resource"""
+        if instances <= 0:
+            raise ValueError("Number of instances requested must be positive")
+            
         with self._lock:
             if process_id not in self.processes or resource_id not in self.resources:
                 return False
@@ -237,26 +262,44 @@ class DeadlockDetector:
             resource = self.resources[resource_id]
             process = self.processes[process_id]
             
-            # If resource is free, assign it
-            if resource['state'] == 'free':
-                resource['state'] = 'owned'
-                resource['owner'] = process_id
-                process['owns'].append(resource_id)
+            # Process can't request a resource if it's already waiting for something else
+            if process['waiting_for'] is not None:
+                return False
+            
+            # If resource has enough available instances, allocate them
+            if resource['available_instances'] >= instances:
+                # Update process's owned resources
+                if resource_id not in process['owns']:
+                    process['owns'].append(resource_id)
+                
+                # Update resource allocation
+                current_allocation = resource['allocations'].get(process_id, 0)
+                resource['allocations'][process_id] = current_allocation + instances
+                resource['available_instances'] -= instances
+                
+                # Update resource state
+                if resource['available_instances'] == 0:
+                    resource['state'] = 'fully_allocated'
+                else:
+                    resource['state'] = 'partially_allocated'
                 
                 self._log_event({
                     'time': time.time(),
                     'action': 'resource_acquired',
                     'resource_id': resource_id,
-                    'process_id': process_id
+                    'process_id': process_id,
+                    'instances': instances
                 })
                 
                 return True
             else:
-                # Resource is owned, add process to waiters
+                # Not enough available instances, add process to waiters
                 if process_id not in resource['waiters']:
                     resource['waiters'].append(process_id)
-                    # Record timestamp when process started waiting
+                    # Record when process started waiting
                     resource['waiter_timestamps'][process_id] = time.time()
+                    # Record how many instances the process is waiting for
+                    resource['waiting_for'][process_id] = instances
                 
                 # Mark that this process is waiting for this resource
                 process['waiting_for'] = resource_id
@@ -266,13 +309,14 @@ class DeadlockDetector:
                     'action': 'resource_waiting',
                     'resource_id': resource_id,
                     'process_id': process_id,
-                    'owner': resource['owner']
+                    'instances_requested': instances,
+                    'instances_available': resource['available_instances']
                 })
                 
                 return False
     
-    def release_resource(self, process_id, resource_id):
-        """Track a process releasing a resource"""
+    def release_resource(self, process_id, resource_id, instances=None):
+        """Track a process releasing multiple instances of a resource"""
         with self._lock:
             if process_id not in self.processes or resource_id not in self.resources:
                 return False
@@ -280,72 +324,89 @@ class DeadlockDetector:
             resource = self.resources[resource_id]
             process = self.processes[process_id]
             
-            # Check if process owns this resource
-            if resource['owner'] != process_id:
-                self._log_event({
-                    'time': time.time(),
-                    'action': 'release_error',
-                    'resource_id': resource_id,
-                    'process_id': process_id,
-                    'owner': resource['owner']
-                })
+            # Check if process holds this resource
+            if resource_id not in process['owns']:
+                return False
+                
+            # Get current allocation
+            current_allocation = resource['allocations'].get(process_id, 0)
+            if current_allocation == 0:
                 return False
             
-            # Release the resource
-            resource['owner'] = None
-            process['owns'].remove(resource_id)
+            # If instances is None or greater than allocated, release all
+            if instances is None or instances >= current_allocation:
+                instances_to_release = current_allocation
+            else:
+                instances_to_release = instances
+            
+            # Release the specified number of instances
+            resource['allocations'][process_id] = current_allocation - instances_to_release
+            resource['available_instances'] += instances_to_release
+            
+            # If process no longer holds any instances, remove from owns list
+            if resource['allocations'][process_id] == 0:
+                del resource['allocations'][process_id]
+                process['owns'].remove(resource_id)
             
             self._log_event({
                 'time': time.time(),
                 'action': 'resource_released',
                 'resource_id': resource_id,
-                'process_id': process_id
+                'process_id': process_id,
+                'instances_released': instances_to_release,
+                'instances_now_available': resource['available_instances']
             })
             
-            # If there are waiters, select the next one based on fairness policy
+            # Check if we can satisfy any waiting processes
             if resource['waiters']:
-                # Get the longest waiting process (based on timestamp)
-                oldest_wait_time = float('inf')
-                next_process_id = None
-                
-                for waiter_id in resource['waiters']:
-                    # Check if the process is still valid and waiting
+                # Try to satisfy waiters in order of arrival (FIFO)
+                for waiter_id in list(resource['waiters']):
                     if waiter_id in self.processes:
                         wait_process = self.processes[waiter_id]
                         if wait_process['waiting_for'] == resource_id:
-                            # Get the timestamp when this process started waiting
-                            wait_time = resource['waiter_timestamps'].get(waiter_id, time.time())
-                            if wait_time < oldest_wait_time:
-                                oldest_wait_time = wait_time
-                                next_process_id = waiter_id
-                
-                if next_process_id:
-                    # Remove from waiters list
-                    resource['waiters'].remove(next_process_id)
-                    if next_process_id in resource['waiter_timestamps']:
-                        del resource['waiter_timestamps'][next_process_id]
-                    
-                    # Assign resource
-                    next_process = self.processes[next_process_id]
-                    resource['state'] = 'owned'
-                    resource['owner'] = next_process_id
-                    next_process['owns'].append(resource_id)
-                    next_process['waiting_for'] = None
-                    
-                    self._log_event({
-                        'time': time.time(),
-                        'action': 'resource_acquired',
-                        'resource_id': resource_id,
-                        'process_id': next_process_id,
-                        'wait_time': time.time() - oldest_wait_time
-                    })
-                else:
-                    # No valid waiters
-                    resource['state'] = 'free'
-                    resource['waiters'] = []
-                    resource['waiter_timestamps'] = {}
-            else:
+                            instances_needed = resource['waiting_for'].get(waiter_id, 1)
+                            
+                            # If we have enough instances available
+                            if resource['available_instances'] >= instances_needed:
+                                # Remove from waiters
+                                resource['waiters'].remove(waiter_id)
+                                if waiter_id in resource['waiter_timestamps']:
+                                    del resource['waiter_timestamps'][waiter_id]
+                                if waiter_id in resource['waiting_for']:
+                                    del resource['waiting_for'][waiter_id]
+                                
+                                # Allocate instances
+                                resource['allocations'][waiter_id] = instances_needed
+                                resource['available_instances'] -= instances_needed
+                                
+                                # Update process status
+                                if resource_id not in wait_process['owns']:
+                                    wait_process['owns'].append(resource_id)
+                                wait_process['waiting_for'] = None
+                                
+                                wait_time = 0
+                                if waiter_id in resource['waiter_timestamps']:
+                                    wait_time = time.time() - resource['waiter_timestamps'][waiter_id]
+                                
+                                self._log_event({
+                                    'time': time.time(),
+                                    'action': 'resource_acquired_after_wait',
+                                    'resource_id': resource_id,
+                                    'process_id': waiter_id,
+                                    'instances': instances_needed,
+                                    'wait_time': wait_time
+                                })
+                                
+                                # Stop after satisfying one waiter (can be changed for different policies)
+                                break
+            
+            # Update resource state
+            if resource['available_instances'] == resource['total_instances']:
                 resource['state'] = 'free'
+            elif resource['available_instances'] == 0:
+                resource['state'] = 'fully_allocated'
+            else:
+                resource['state'] = 'partially_allocated'
             
             return True
     
@@ -360,8 +421,11 @@ class DeadlockDetector:
             return {r_id: {
                 'type': r_info['type'],
                 'state': r_info['state'],
-                'owner': r_info['owner'],
-                'waiters': r_info['waiters'].copy()
+                'owner': r_info.get('owner', None),
+                'waiters': r_info.get('waiters', []).copy(),
+                'total_instances': r_info.get('total_instances', 1),
+                'available_instances': r_info.get('available_instances', 0),
+                'allocations': r_info.get('allocations', {}).copy()
             } for r_id, r_info in self.resources.items()}
     
     def get_process_status(self):
@@ -488,11 +552,72 @@ class DeadlockDetector:
             for resource_id in owned_resources:
                 if resource_id in self.resources:
                     resource = self.resources[resource_id]
-                    if resource['owner'] == process_id:
-                        # Clear ownership
-                        resource['owner'] = None
+                    # For multi-instance resources, release all instances owned by this process
+                    if process_id in resource.get('allocations', {}):
+                        instances_released = resource['allocations'][process_id]
+                        resource['available_instances'] += instances_released
+                        del resource['allocations'][process_id]
                         
-                        # If there are waiters, assign to the first one
+                        # Update resource state based on available instances
+                        if resource['available_instances'] == resource['total_instances']:
+                            resource['state'] = 'free'
+                        elif resource['available_instances'] == 0:
+                            resource['state'] = 'fully_allocated'
+                        else:
+                            resource['state'] = 'partially_allocated'
+                            
+                        # Check if we can satisfy any waiting processes
+                        if resource['waiters']:
+                            # Try to satisfy waiters in order of arrival (FIFO)
+                            for waiter_id in list(resource['waiters']):
+                                if waiter_id in self.processes:
+                                    wait_process = self.processes[waiter_id]
+                                    if wait_process['waiting_for'] == resource_id:
+                                        instances_needed = resource['waiting_for'].get(waiter_id, 1)
+                                        
+                                        # If we have enough instances available
+                                        if resource['available_instances'] >= instances_needed:
+                                            # Remove from waiters
+                                            resource['waiters'].remove(waiter_id)
+                                            if waiter_id in resource['waiter_timestamps']:
+                                                del resource['waiter_timestamps'][waiter_id]
+                                            if waiter_id in resource['waiting_for']:
+                                                del resource['waiting_for'][waiter_id]
+                                            
+                                            # Allocate instances
+                                            resource['allocations'][waiter_id] = instances_needed
+                                            resource['available_instances'] -= instances_needed
+                                            
+                                            # Update process status
+                                            if resource_id not in wait_process['owns']:
+                                                wait_process['owns'].append(resource_id)
+                                            wait_process['waiting_for'] = None
+                                            
+                                            self._log_event({
+                                                'time': time.time(),
+                                                'action': 'resource_acquired_after_process_unregister',
+                                                'resource_id': resource_id,
+                                                'process_id': waiter_id,
+                                                'instances': instances_needed,
+                                                'previous_owner': process_id
+                                            })
+                                            
+                                            # Stop after satisfying one waiter (can be changed for different policies)
+                                            break
+                        
+                        self._log_event({
+                            'time': time.time(),
+                            'action': 'resource_force_released',
+                            'resource_id': resource_id,
+                            'process_id': process_id,
+                            'instances_released': instances_released
+                        })
+                    elif resource.get('owner') == process_id:
+                        # Handle legacy single-instance resources
+                        resource['owner'] = None
+                        resource['state'] = 'free'
+                        
+                        # Handle waiters for single-instance resources
                         if resource['waiters']:
                             next_process_id = resource['waiters'][0]
                             oldest_wait_time = resource['waiter_timestamps'].get(next_process_id, time.time())
@@ -523,11 +648,7 @@ class DeadlockDetector:
                                     'process_id': next_process_id,
                                     'previous_owner': process_id
                                 })
-                            else:
-                                resource['state'] = 'free'
-                        else:
-                            resource['state'] = 'free'
-                            
+                        
                         self._log_event({
                             'time': time.time(),
                             'action': 'resource_force_released',
@@ -541,6 +662,8 @@ class DeadlockDetector:
                     resource['waiters'].remove(process_id)
                     if process_id in resource['waiter_timestamps']:
                         del resource['waiter_timestamps'][process_id]
+                    if process_id in resource.get('waiting_for', {}):
+                        del resource['waiting_for'][process_id]
             
             # Remove the process
             del self.processes[process_id]
@@ -553,8 +676,8 @@ class DeadlockDetector:
             
             return True
     
-    def set_resource_owner(self, resource_id, process_id):
-        """Set a process as the owner of a resource"""
+    def set_resource_owner(self, resource_id, process_id, instances=1):
+        """Set a process as the owner of a resource (with specified instances)"""
         with self._lock:
             if resource_id not in self.resources or process_id not in self.processes:
                 return False
@@ -562,16 +685,34 @@ class DeadlockDetector:
             resource = self.resources[resource_id]
             process = self.processes[process_id]
             
-            # Check if resource is already owned
-            if resource['state'] == 'owned' and resource['owner'] is not None:
-                # Release from previous owner
-                prev_owner = resource['owner']
-                if prev_owner in self.processes:
-                    self.processes[prev_owner]['owns'].remove(resource_id)
-            
-            # Set new owner
-            resource['state'] = 'owned'
-            resource['owner'] = process_id
+            # For multi-instance resources
+            if 'allocations' in resource:
+                # Check if there are enough instances available
+                if resource['available_instances'] < instances:
+                    return False
+                
+                # Update allocation
+                current_allocation = resource['allocations'].get(process_id, 0)
+                resource['allocations'][process_id] = current_allocation + instances
+                resource['available_instances'] -= instances
+                
+                # Update state
+                if resource['available_instances'] == 0:
+                    resource['state'] = 'fully_allocated'
+                else:
+                    resource['state'] = 'partially_allocated'
+            else:
+                # For single-instance resources (legacy)
+                # Check if resource is already owned
+                if resource['state'] == 'owned' and resource['owner'] is not None:
+                    # Release from previous owner
+                    prev_owner = resource['owner']
+                    if prev_owner in self.processes:
+                        self.processes[prev_owner]['owns'].remove(resource_id)
+                
+                # Set new owner
+                resource['state'] = 'owned'
+                resource['owner'] = process_id
             
             # Add to process's owned resources if not already there
             if resource_id not in process['owns']:
@@ -581,7 +722,8 @@ class DeadlockDetector:
                 'time': time.time(),
                 'action': 'resource_owner_set',
                 'resource_id': resource_id,
-                'process_id': process_id
+                'process_id': process_id,
+                'instances': instances
             })
             
             return True
@@ -608,6 +750,20 @@ class DeadlockDetector:
                 'action': 'process_waiting',
                 'resource_id': resource_id,
                 'process_id': process_id
+            })
+            
+            return True
+    
+    def clear_all(self):
+        """Clear all resources and processes from the deadlock detector"""
+        with self._lock:
+            self.resources = {}
+            self.processes = {}
+            
+            self._log_event({
+                'time': time.time(),
+                'action': 'system_cleared',
+                'message': 'All resources and processes cleared'
             })
             
             return True 
